@@ -20,7 +20,12 @@ A normalization process was done to both the single and binary templates. This f
 
 After normalization, the SNR of each object is calculated. This is done simply by dividing the flux by the noise value for all 409 flux measurements, and taking the nanmedian of that number. 
 
+## Oversampling
+
 ## Plots
+
+Histogram of Single Star Spectral Types:
+![paperspectralhist](https://user-images.githubusercontent.com/108042357/213020636-92afc86a-c880-4f59-8cdf-36615cf6d8a8.png)
 
 Histogram of SNR values for the normalized single stars: approximately linearly decreases from 0 to 200 SNR
 ![paperSNRsingles](https://user-images.githubusercontent.com/108042357/213018270-ea21d7c1-c453-4747-9487-8e8fbdf4e8dd.png)
@@ -32,7 +37,14 @@ Distribution of Binary Type: heatmap showing frequency of pairs based on primary
 ![paperbinaryformation](https://user-images.githubusercontent.com/108042357/213018200-9f169474-30ed-49e1-919b-be0e78420587.png)
 
 
+
 ## Random Forest Method and Parameters
+
+Four spectral type groupings: Burgasser, Bardalez, Both, All
+
+Five sub-SNR groupings: 0-50, 50-100, 100-150, 150-200
+
+Additional RF done: Trained on SNR from 0-50, and tested on SNR >10 to see how very poor SNR affects RF metrics
 
 Features: Only flux was used, input flux was shuffled (rows were randomly shuffled before inputted)
 
