@@ -6,16 +6,33 @@ This is Malina's outline of her Random Forest Trial methodology.
 
 I used the "spectral_templates_data_version_jul26.h5" from the google drive. This is Christian's file, which contains: spectral type, spex type, optical type, name, wavegrid, observation date, system interpolated flux, system interpolated noise, and difference spectrum of 473 objects. I dropped the nan's to get the flux, noise, and spex type of 414 single stars.
 
-For artificial binary creation, I used these 414 single stars. I directly added the flux of two stars together and added their noise in quadrature. This process gave me 85,491 artificial binaries. The for loop for this is added to the core.py page. These binaries are in the file "binaries_template_aug15.h5" in the google drive.
+For artificial binary creation, I used these 414 single stars. I directly added the flux of two stars together and added their noise in quadrature. This process gave me 85,491 artificial binaries. The for loop for this is added to the core.py page. These binaries are in the file "binaries_template_aug15.h5" in the google drive. The primary star can be the same spectral type as the secondary star, but the secondary star will never be an earlier type than the primary star. There are pairs for all possible combinations, but these are not uniformly distributed. 
+
+## Classification
+
+No spectral type or system type classification was used, I only used Christian's spex type for single, primary, and secondary type. 
 
 ## Normalization
 
-A normalization process was done to both the single and binary templates. This function is added to the core.py page. The flux and noise values are normalized between 1.2 and 1.3 microns. The normalized binaries are in the file "normalized_binaries_template_aug15.h5" in the google drive. 
+A normalization process was done to both the single and binary templates. This function is added to the core.py page. The flux and noise values are normalized between 1.2 and 1.3 microns. The normalized binaries are in the file "normalized_binaries_template_aug15.h5" in the google drive. This same normalization is also done after oversampling to prevent any accidental increments in brightness of the spectra.
 
 ## SNR
 
+After normalization, the SNR of each object is calculated. This is done simply by dividing the flux by the noise value for all 409 flux measurements, and taking the nanmedian of that number. 
+
+## Plots
+
+Histogram of SNR values for the normalized single stars: approximately linearly decreases from 0 to 200 SNR
+Histogram of SNR values for the normalized binaries: skewed right, ranges from 0 to 275 SNR
+Distribution of Binary Type: heatmap showing frequency of pairs based on primary and secondary type
 
 ## Random Forest Method and Parameters
+
+Features: Only flux was used
+Number of Estimators: 50
+Train/Test Split: 0.75/0.25
+
+
 
 
 ## Metrics 
