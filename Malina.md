@@ -23,10 +23,14 @@ After normalization, the SNR of each object is calculated. This is done simply b
 ## Plots
 
 Histogram of SNR values for the normalized single stars: approximately linearly decreases from 0 to 200 SNR
+![paperSNRsingles](https://user-images.githubusercontent.com/108042357/213018270-ea21d7c1-c453-4747-9487-8e8fbdf4e8dd.png)
 
 Histogram of SNR values for the normalized binaries: skewed right, ranges from 0 to 275 SNR
+![paperSNRbinaries](https://user-images.githubusercontent.com/108042357/213018299-d8e86712-ae80-4e14-bbe4-ebcbb9b3a5bf.png)
 
 Distribution of Binary Type: heatmap showing frequency of pairs based on primary and secondary type
+![paperbinaryformation](https://user-images.githubusercontent.com/108042357/213018200-9f169474-30ed-49e1-919b-be0e78420587.png)
+
 
 ## Random Forest Method and Parameters
 
