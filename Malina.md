@@ -23,16 +23,31 @@ After normalization, the SNR of each object is calculated. This is done simply b
 ## Plots
 
 Histogram of SNR values for the normalized single stars: approximately linearly decreases from 0 to 200 SNR
+
 Histogram of SNR values for the normalized binaries: skewed right, ranges from 0 to 275 SNR
+
 Distribution of Binary Type: heatmap showing frequency of pairs based on primary and secondary type
 
 ## Random Forest Method and Parameters
 
-Features: Only flux was used
+Features: Only flux was used, input flux was shuffled (rows were randomly shuffled before inputted)
+
 Number of Estimators: 50
+
 Train/Test Split: 0.75/0.25
 
-
-
+Rseed: 42
 
 ## Metrics 
+
+All the metrics recorded are listed below:
+
+Precision score
+
+Single precision, recall, and F1 score
+
+Binary precision, recall, and F1 score
+
+Macro and weighted average
+
+Confusion  matrix: true positives, true negatives, false positives, false negatives
