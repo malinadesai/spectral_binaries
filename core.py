@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+import os
+
+import numpy as np
+
 
 VERSION = '2023.01.16'
 __version__ = VERSION
@@ -30,7 +34,7 @@ print('Please report any errors are feature requests to our github page, {}\n\n'
 
 def measureSN(wave, flux, unc, rng=[1.2,1.35]):
 	"""
-	Measures the signal to noise of a spectrum over a specified wavelength range
+	Measures the signal-to-noise of a spectrum over a specified wavelength range
 
 	Parameters
 	----------
@@ -60,9 +64,8 @@ def measureSN(wave, flux, unc, rng=[1.2,1.35]):
 	0.01
 
 	"""
-
-	pass
-
+	idx = np.where((wave <= rng[1]) & (wave >= rng[0]))
+	return np.nanmedian(flux[idx] / unc[idx])
 
 
 def classify(wave, flux, unc, method='kirkpatrick'):
@@ -143,8 +146,10 @@ def normalize(wave, flux, unc, rng=[1.2,1.35], method='median'):
 	>>> nflux, nunc = normalize(wave,flux,unc)
 
 	"""
-
-	pass
+	idx = np.where((wave <= rng[1]) & (wave >= rng[0]))
+	n_flux = flux / np.nanmax(flux[idx])
+	n_unc = unc / np.nanmax(flux[idx])
+	return n_flux, n_unc
 
 
 def addNoise(wave, flux, unc, scale=1.):
