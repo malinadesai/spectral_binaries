@@ -22,6 +22,10 @@ After normalization, the SNR of each object is calculated. This is done simply b
 
 ## Oversampling
 
+Adding noise: I created an artificial noise function that takes a random number between 0.01 and 1. This number is multiplied to the noise of the object, and then the original noise is added in quadrature to the random noise. New SNR values are calculated as the nanmedian after the artificial noise is added. 
+
+Artificial template generation: The artificial noise function is applied to the fluxes, and the new noise and SNR values replace the old ones. This is done in a for loop that generates over 100,000 singles and binaries (each grouping varies but the amount of singles and binaries per group is similar). This method could be improved.
+
 ## Plots
 
 Histogram of Single Star Spectral Types:
