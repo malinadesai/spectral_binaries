@@ -102,6 +102,25 @@ def classify(wave, flux, unc, method='kirkpatrick'):
 
 	pass
 
+def get_absolute_mag_j2mass(sptype):
+    """Function that obtains the absolute magnitude relation from the spectral type
+    sptype: spectral type"""
+    spt = make_spt_number(sptype)
+    return spem.typeToMag(spt, '2MASS J', ref = 'dupuy2012')[0]
+
+
+def fast_classify(flux, uncertainties, fit_range=[WAVEGRID[0], WAVEGRID[-1]]):
+    w = np.where(np.logical_and(WAVEGRID >= fit_range[0], WAVEGRID <= fit_range[1]))
+
+    scales, chi = [], []
+
+    # Loop through standards
+    for std in standards:
+        scale = np.nansum((flux[w] * std[w]) / (uncertainties[w] ** 2)) / np.nansum((std[w] ** 2) / (uncertainties[w] ** 2))
+        scales.append(scale)
+        chisquared = np.nansum(((flux[w] - (std[w] * scales[-1])) ** 2) / (uncertainties[w] ** 2))
+        chi.append(chisquared)
+    return standard_types[np.argmin(chi)]
 
 
 def normalize(wave, flux, unc, rng=[1.2,1.35], method='median'):
@@ -146,6 +165,20 @@ def normalize(wave, flux, unc, rng=[1.2,1.35], method='median'):
 
 	pass
 
+def normalize_function(row):
+    """ Normalizes the given row between 1.2 and 1.3 microns, applies to noise and flux"""
+    fluxes = row.filter(like = 'flux').values
+    mask = np.logical_and(WAVEGRID>1.2, WAVEGRID<1.3)
+    normalization_factor = np.nanmedian(fluxes[mask])
+    newfluxes = fluxes / normalization_factor
+    noise = row.filter(like = 'noise').values
+    newnoise = noise / normalization_factor
+    flux_dict = dict(zip(['flux_'+ str(idx) for idx in range(len(newfluxes))], newfluxes))
+    noise_dict = dict(zip(['noise_' + str(idx) for idx in range(len(newnoise))], newnoise))
+    flux_dict.update(noise_dict)
+    return pd.Series(flux_dict)
+
+
 
 def addNoise(wave, flux, unc, scale=1.):
 	"""
@@ -183,6 +216,18 @@ def addNoise(wave, flux, unc, scale=1.):
 	"""
 
 	pass
+
+def add_noise(fluxframe, noiseframe):
+    '''
+    fluxframe is the total rows and columns of fluxes
+    noiseframe is the total rows and columns containing the noise values
+    This is the function Malina used.
+    '''
+    n1 = random.uniform(0.01, 1)  # random number
+    noisy_df = np.sqrt(noiseframe**2 + (n1*noiseframe)**2) # adds in quadrature n1*noise and original noise
+    newflux = fluxframe + np.random.normal(0, noisy_df) # adding the created + original noise to the flux
+    SNR = np.nanmedian(newflux.values / noisy_df.values) 
+    return newflux, noisy_df, SNR
 
 
 def readTemplates(file='single_spectra.h5'):
@@ -272,6 +317,54 @@ def makeRFClassifyTraining(wave,templates,sample_definitions={},oversample=True,
 # downselect single templates based on criteria
 
 # make binaries
+
+def combine_two_spex_spectra(sp1, sp2):
+    """Functions that combines two random spectrum object
+    sp1: a splat.spectrum object
+    sp2: a splat.spectrum object
+    returns: a dictionary of the combined flux, wave, interpolated flux
+    you can change this to return anything else you'd like"""
+    try:
+        #first of all classifyByStandard
+        spt1= splat.typeToNum(splat.classifyByStandard(sp1))
+        spt2=splat.typeToNum(splat.classifyByStandard(sp2))
+        
+        #using kirkpatrick relations
+        absj0=get_absolute_mag_j2mass(spt1)
+        absj1=get_absolute_mag_j2mass(spt2)
+
+        #luxCalibrate(self,filt,mag
+        sp1.fluxCalibrate('2MASS J', absj0)
+        sp2.fluxCalibrate('2MASS J', absj1)
+
+        #create a combined spectrum
+        sp3= sp1+sp2
+
+        #classify the result
+        spt3= splat.typeToNum(splat.classifyByStandard(sp3)[0])
+
+        #get the standard spectrum
+        standard= splat.getStandard(spt3)
+
+        #normalize all spectra and compute the difference spectrum
+        standard.normalize()
+        sp3.normalize()
+        sp1.normalize()
+        sp2.normalize()
+
+        diff= standard-sp3
+        print ("mags{}{} types{}+{}={} ".format(absj0, absj1,spt1, spt2, spt3 ))
+        
+        return {'primary_type': splat.typeToNum(spt1[0]),
+                'secondary_type': splat.typeToNum(spt2[0]),
+                'system_type': spt3,
+                'system_interpolated_flux':  interpolate_flux_wave(sp3.wave.value,sp3.flux.value).flatten(),
+                'system_interpolated_noise':  interpolate_flux_wave(sp3.wave.value,sp3.noise.value).flatten(),
+                'difference_spectrum': interpolate_flux_wave(diff.wave.value, np.abs(diff.flux.value)).flatten()
+                }
+    except:
+        return {}
+
 
 # downselect binaries based on criteria
 
