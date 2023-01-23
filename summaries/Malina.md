@@ -6,7 +6,7 @@ This is Malina's outline of her Random Forest Trial methodology.
 
 I used the "spectral_templates_data_version_jul26.h5" from the google drive. This is Christian's file, which contains: spectral type, spex type, optical type, name, wavegrid, observation date, system interpolated flux, system interpolated noise, and difference spectrum of 473 objects. I dropped the nan's to get the flux, noise, and spex type of 414 single stars.
 
-For artificial binary creation, I used these 414 single stars. I directly added the flux of two stars together and added their noise in quadrature. This process gave me 85,491 artificial binaries. The for loop for this is added to the core.py page. These binaries are in the file "binaries_template_aug15.h5" in the google drive. The primary star can be the same spectral type as the secondary star, but the secondary star will never be an earlier type than the primary star. There are pairs for all possible combinations, but these are not uniformly distributed. 
+For artificial binary creation, I used these 414 single stars. I directly added the flux of two stars together and added their noise in quadrature. This process gave me 85,491 artificial binaries. These binaries are in the file "binaries_template_aug15.h5" in the google drive. The primary star can be the same spectral type as the secondary star, but the secondary star will never be an earlier type than the primary star. There are pairs for all possible combinations, but these are not uniformly distributed. 
 
 ## Classification
 
@@ -21,6 +21,10 @@ A normalization process was done to both the single and binary templates. This f
 After normalization, the SNR of each object is calculated. This is done simply by dividing the flux by the noise value for all 409 flux measurements, and taking the nanmedian of that number. 
 
 ## Oversampling
+
+Adding noise: I created an artificial noise function that takes a random number between 0.01 and 1. This number is multiplied to the noise of the object, and then the original noise is added in quadrature to the random noise. New SNR values are calculated as the nanmedian after the artificial noise is added. 
+
+Artificial template generation: The artificial noise function is applied to the fluxes, and the new noise and SNR values replace the old ones. This is done in a for loop that generates over 100,000 singles and binaries (each grouping varies but the amount of singles and binaries per group is similar). This method could be improved.
 
 ## Plots
 
