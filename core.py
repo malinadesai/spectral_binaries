@@ -6,6 +6,10 @@ import os
 
 import numpy as np
 
+# JD import
+import scipy.interpolate as interp
+# 
+
 
 VERSION = "2023.01.16"
 __version__ = VERSION
