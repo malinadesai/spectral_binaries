@@ -209,6 +209,20 @@ def normalize(wave, flux, unc, rng=[1.2, 1.35], method="median"):
     n_unc = unc / np.nanmax(flux[idx])
     return n_flux, n_unc
 
+def normalize_function(row):
+    """ Normalizes the given row between 1.2 and 1.3 microns, applies to noise and flux"""
+    fluxes = row.filter(like = 'flux').values
+    mask = np.logical_and(WAVEGRID>1.2, WAVEGRID<1.3)
+    normalization_factor = np.nanmedian(fluxes[mask])
+    newfluxes = fluxes / normalization_factor
+    noise = row.filter(like = 'noise').values
+    newnoise = noise / normalization_factor
+    flux_dict = dict(zip(['flux_'+ str(idx) for idx in range(len(newfluxes))], newfluxes))
+    noise_dict = dict(zip(['noise_' + str(idx) for idx in range(len(newnoise))], newnoise))
+    flux_dict.update(noise_dict)
+    return pd.Series(flux_dict)
+    
+
 
 def addNoise(wave, flux, unc, scale=1.0):
     """
