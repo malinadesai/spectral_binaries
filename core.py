@@ -5,6 +5,7 @@ from __future__ import print_function
 import os
 
 import numpy as np
+import pandas as pd
 
 # JD import and data needed
 import scipy.interpolate as interp
