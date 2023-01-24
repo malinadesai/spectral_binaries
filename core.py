@@ -40,6 +40,27 @@ print(
 ########## BASIC SPECTRAL ANALYSIS FUNCTIONS ##########
 #######################################################
 
+def interpolate_flux_wave(wave, flux):
+  
+  '''
+  Function to interpolate the flux from the stars to the wavegrid we are working on
+  
+  Parameters
+  ----------
+  wave : list or numpy array of floats
+                  An array specifying wavelength in units of microns of the given star
+
+  flux : list or numpy array of floats
+                  An array specifying flux density in f_lambda units of thegiven star
+  
+  Returns
+  -------
+  interpolated_flux : list or numpy array of floats
+                  An array with the interpolated flux
+  '''
+  f= interp.interp1d(wave, flux, assume_sorted = False, fill_value =0.0)
+  return f(wavegrid)
+
 
 def measureSN(wave, flux, unc, rng=[1.2, 1.35]):
     """
