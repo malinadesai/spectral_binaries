@@ -1,0 +1,22 @@
+[project]
+name = "spectral_binaries"
+version = "0.0.1"
+authors = [
+  { name="Adam Burgasser", email="aburgasser@ucsd.edu" },
+  { name="Christian Aganze", email="caganze@ucsd.edu" },
+  { name="Malina Desai", email="mmdesai@ucsd.edu" },
+  { name="Juan Diego Draxl Giannoni", email="jdraxl@ucsd.edu" },
+  { name="Camille Dunning", email="adunning@ucsd.edu" },
+]
+description = "Random Forest project to identify low-mass spectral binaries from SpeX prism data"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Ultracool-Machine-Learning/spectral_binaries"
+"Bug Tracker" = "https://github.com/Ultracool-Machine-Learning/spectral_binaries/issues"
