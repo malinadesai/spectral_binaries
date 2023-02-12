@@ -6,17 +6,9 @@ import os
 
 import numpy as np
 import pandas as pd
+import random
 
 import scipy.interpolate as interp
-
-# JD import and data needed - removed to these can be added in holistically
-# wavegrid=np.array([0.90067 , 0.904086, 0.907521, 0.910973, 0.914444, 0.917932, 0.921437, 0.924961, 0.928501, 0.932059, 0.935634, 0.939225, 0.942834, 0.946459, 0.9501  , 0.953758, 0.957431, 0.961121, 0.964826, 0.968547, 0.972283, 0.976035, 0.979801, 0.983582, 0.987378, 0.991188, 0.995013, 0.998851, 1.0027  , 1.00657 , 1.01045 , 1.01434 , 1.01825 , 1.02217 , 1.0261  , 1.03004 , 1.034   , 1.03797 , 1.04195 , 1.04594 , 1.04994 , 1.05395 , 1.05798 , 1.06202 , 1.06606 , 1.07012 , 1.07419 , 1.07826 , 1.08235 , 1.08645 , 1.09055 , 1.09467 , 1.09879 , 1.10292 , 1.10706 , 1.11121 , 1.11537 , 1.11954 , 1.12371 , 1.12789 , 1.13208 , 1.13627 , 1.14047 , 1.14468 , 1.14889 , 1.15311 , 1.15734 , 1.16157 , 1.16581 , 1.17005 , 1.1743  , 1.17856 , 1.18281 , 1.18708 , 1.19135 , 1.19562 , 1.19989 , 1.20417 , 1.20845 , 1.21274 , 1.21703 , 1.22132 , 1.22562 , 1.22992 , 1.23422 , 1.23852 , 1.24283 , 1.24714 , 1.25145 , 1.25576 , 1.26007 , 1.26438 , 1.2687  , 1.27301 , 1.27733 , 1.28165 , 1.28596 , 1.29028 , 1.2946  , 1.29892 , 1.30324 , 1.30755 , 1.31187 , 1.31619 , 1.3205  , 1.32482 , 1.32913 , 1.33344 , 1.33776 , 1.34206 , 1.34637 , 1.35068 , 1.35498 , 1.35929 , 1.36359 , 1.36788 , 1.37218 , 1.37647 , 1.38076 , 1.38505 , 1.38933 , 1.39362 , 1.39789 , 1.40217 , 1.40644 , 1.41071 , 1.41497 , 1.41923 , 1.42349 , 1.42775 , 1.432   , 1.43624 , 1.44048 , 1.44472 , 1.44895 , 1.45318 , 1.4574  , 1.46162 , 1.46584 , 1.47005 , 1.47425 , 1.47845 , 1.48265 , 1.48684 , 1.49102 , 1.4952  , 1.49938 , 1.50354 , 1.50771 , 1.51187 , 1.51602 , 1.52017 , 1.52431 , 1.52844 , 1.53257 , 1.5367  , 1.54082 , 1.54493 , 1.54903 , 1.55314 , 1.55723 , 1.56132 , 1.5654  , 1.56948 , 1.57355 , 1.57761 , 1.58167 , 1.58572 , 1.58977 , 1.5938  , 1.59784 , 1.60186 , 1.60588 , 1.6099  , 1.6139  , 1.6179  , 1.6219  , 1.62589 , 1.62987 , 1.63384 , 1.63781 , 1.64177 , 1.64573 , 1.64967 , 1.65362 , 1.65755 , 1.66148 , 1.6654  , 1.66932 , 1.67323 , 1.67713 , 1.68102 , 1.68491 , 1.6888  , 1.69267 , 1.69654 , 1.70041 , 1.70426 , 1.70811 , 1.71196 , 1.71579 , 1.71962 , 1.72345 , 1.72726 , 1.73108 , 1.73488 , 1.73868 , 1.74247 , 1.74626 , 1.75004 , 1.75381 , 1.75757 , 1.76133 , 1.76509 , 1.76884 , 1.77258 , 1.77631 , 1.78004 , 1.78376 , 1.78748 , 1.79119 , 1.7949  , 1.79859 , 1.80229 , 1.80597 , 1.80965 , 1.81333 , 1.817   , 1.82066 , 1.82431 , 1.82796 , 1.83161 , 1.83525 , 1.83888 , 1.84251 , 1.84613 , 1.84975 , 1.85336 , 1.85696 , 1.86056 , 1.86415 , 1.86774 , 1.87132 , 1.8749  , 1.87847 , 1.88204 , 1.8856  , 1.88915 , 1.8927  , 1.89625 , 1.89979 , 1.90332 , 1.90685 , 1.91037 , 1.91389 , 1.9174  , 1.92091 , 1.92441 , 1.92791 , 1.9314  , 1.93489 , 1.93837 , 1.94185 , 1.94532 , 1.94879 , 1.95225 , 1.95571 , 1.95916 , 1.96261 , 1.96605 , 1.96949 , 1.97293 , 1.97635 , 1.97978 , 1.9832  , 1.98661 , 1.99002 , 1.99342 , 1.99682 , 2.00022 , 2.00361 , 2.007   , 2.01038 , 2.01375 , 2.01713 , 2.02049 , 2.02386 , 2.02722 , 2.03057 , 2.03392 , 2.03726 , 2.0406  , 2.04394 , 2.04727 , 2.0506  , 2.05392 , 2.05724 , 2.06055 , 2.06386 , 2.06716 , 2.07046 , 2.07376 , 2.07705 , 2.08033 , 2.08361 , 2.08689 , 2.09016 , 2.09343 , 2.09669 , 2.09995 , 2.1032  , 2.10645 , 2.1097  , 2.11294 , 2.11618 , 2.11941 , 2.12263 , 2.12586 , 2.12907 , 2.13229 , 2.13549 , 2.1387  , 2.1419  , 2.14509 , 2.14828 , 2.15147 , 2.15465 , 2.15782 , 2.16099 , 2.16416 , 2.16732 , 2.17048 , 2.17363 , 2.17678 , 2.17992 , 2.18306 , 2.18619 , 2.18932 , 2.19244 , 2.19556 , 2.19867 , 2.20178 , 2.20488 , 2.20798 , 2.21108 , 2.21416 , 2.21725 , 2.22033 , 2.2234  , 2.22647 , 2.22953 , 2.23259 , 2.23564 , 2.23869 , 2.24173 , 2.24477 , 2.24781 , 2.25083 , 2.25386 , 2.25687 , 2.25989 , 2.26289 , 2.26589 , 2.26889 , 2.27188 , 2.27487 , 2.27785 , 2.28083 , 2.2838  , 2.28676 , 2.28972 , 2.29268 , 2.29563 , 2.29857 , 2.30151 , 2.30445 , 2.30738 , 2.3103  , 2.31322 , 2.31613 , 2.31904 , 2.32195 , 2.32485 , 2.32774 , 2.33063 , 2.33351 , 2.33639 , 2.33926 , 2.34213 , 2.345   , 2.34786 , 2.35071 , 2.35356 , 2.35641 , 2.35925 , 2.36208 , 2.36492 , 2.36774 , 2.37057 , 2.37338 , 2.3762  , 2.37901 , 2.38182 , 2.38462 , 2.38742 , 2.39021 , 2.393   , 2.39579 , 2.39857 ])
-# wavegrid_list=list(wavegrid)
-
-# # JD added this in 2/7 to set up the standards - requires splat
-# standard_types = list(range(15,40))
-# standard_stars = [splat.getStandard(i) for i in standard_types]
-# interpol_standards = [interpolate_flux_wave(std.wave.value, std.flux.value) for std in standard_stars]
 
 # -----------------------------------------------------------------------------------------------------
 
@@ -29,7 +21,7 @@ DATA_FOLDER = CODE_PATH + "/data/"
 ERROR_CHECKING = False
 
 
-######################################################
+#######################################################
 #######################################################
 ###############   DISPLAY ON LOAD IN  #################
 #######################################################
@@ -45,6 +37,11 @@ print(
     )
 )
 
+standards = pd.read_hdf(DATA_FOLDER+'/standards.h5')
+standard_types = list(range(15,40))
+flux_standards = [standards.interpolated_flux[type-10] for type in standard_types]
+wavegrid = standards["wavegrid"].iloc[0]
+wavegrid_list = list(wavegrid)
 
 #######################################################
 ########## BASIC SPECTRAL ANALYSIS FUNCTIONS ##########
@@ -171,19 +168,33 @@ def get_absolute_mag_j2mass(sptype):
 #     return standard_types[np.argmin(chi)]
 
 
-def fast_classify(flux, uncertainties, fit_range=[wavegrid_list[0], wavegrid_list[-1]]):
-	'''
-	Juan Diego added this in as a replacement for older version of fast_classify, works better than before
-	'''
-    w = np.where(np.logical_and(wavegrid_list >= fit_range[0], wavegrid_list <= fit_range[1]))
-    w = w[0]
+def fast_classify(flux, uncertainties, fit_range=[wavegrid[0], wavegrid[-1]]):
+    """
+    This function was aded by Juan Diego to replace the previousfast classify
+    The function uses the mathematical methd used by Bardalez 2014 to classify the stars comparing them to standards
+
+    Parameters
+    ----------
+    flux : list or numpy array of floats
+                    An array specifying flux density in f_lambda units
+
+    uncertainties : list or numpy array of floats
+                    An array specifying uncertainty in the same units as flux
+    
+    Returns
+    -------
+    float
+            Numerical spectral type of classification, with 15 = M5, 25 = L5, 35 = T5, etc
+    """
+      
+    w = np.where(np.logical_and(wavegrid >= fit_range[0], wavegrid <= fit_range[1]))[0]
 
     scales, chi = [], []
 
-    weights = np.array([wavegrid_list[1]-wavegrid_list[0]] + [(wavegrid_list[i]-wavegrid_list[i-1])/2 + (wavegrid_list[i+1]-wavegrid_list[i])/2 for i in w[1:-1]] + [wavegrid_list[-1]-wavegrid_list[-2]])
+    weights = np.array([wavegrid[1]-wavegrid[0]] + [(wavegrid[i]-wavegrid[i-1])/2 + (wavegrid[i+1]-wavegrid[i])/2 for i in w[1:-1]] + [wavegrid[-1]-wavegrid[-2]])
 
     # Loop through standards
-    for std in interpol_standards:
+    for std in flux_standards:
         scale = np.nansum((flux[w] * std[w]) / (uncertainties[w] ** 2)) / np.nansum((std[w] ** 2) / (uncertainties[w] ** 2))
         scales.append(scale)
         chisquared = np.nansum(weights[w]*((flux[w] - (std[w] * scales[-1])) ** 2) / (uncertainties[w] ** 2))
@@ -240,7 +251,7 @@ def normalize(wave, flux, unc, rng=[1.2, 1.35], method="median"):
 def normalize_function(row):
     """ Normalizes the given row between 1.2 and 1.3 microns, applies to noise and flux"""
     fluxes = row.filter(like = 'flux').values
-    mask = np.logical_and(WAVEGRID>1.2, WAVEGRID<1.3)
+    mask = np.logical_and(wavegrid>1.2, wavegrid<1.3)
     normalization_factor = np.nanmedian(fluxes[mask])
     newfluxes = fluxes / normalization_factor
     noise = row.filter(like = 'noise').values
@@ -252,6 +263,8 @@ def normalize_function(row):
     
 def star_normalize_JD(flux, noise):
     '''
+    Juan Diego added this function
+
     This function normalizes the flux with the max flux in the region 1.2-1.4 micros and scales the noise accordingly.
     Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
 
@@ -342,6 +355,8 @@ def add_noise(fluxframe, noiseframe):
 
 def star_snr_JD(flux,noise):
     '''
+    Juan Diego added this function
+
     This function calculates the snr of a star when given the flux and the noise.
     The snr is specifically calculated between wavelengths of 1.1-1.3 microns.
     Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
@@ -353,7 +368,7 @@ def star_snr_JD(flux,noise):
     Returns
     -------
     One output.
-    The snr as a number.
+    float
     '''
 
     flux_Jband = [flux[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
@@ -363,6 +378,144 @@ def star_snr_JD(flux,noise):
     return snr
 
 
+def star_formatting(flux, noise, wave):
+    '''
+    Juan Diego added this function on Feb 12 2023
+
+    This function formats a given star so that it can later be used in the designed Random Forest models
+    The models have been built with a spaceific wavelength grid between 0.9-2.4 micro-meters.
+    Flux and noise ought to be interpolated to that specific wavelength.
+
+    Arguments
+    ---------
+    Takes three arguments
+    flux  : list or numpy array of floats
+                    An array specifying flux density in f_lambda units
+
+    noise : list or numpy array of floats
+                    An array specifying uncertainty in the same units as flux
+
+    wave  : list or numpy array of floats
+                    An array specifying wavelength in units of microns
+
+    Returns
+    -------
+    Two outputs
+    The interpolated flux of the star  (list)
+    The interpolated noise of the star (list)
+
+    Examples
+    --------
+    
+    '''
+    
+    # verify both arrays are the same size
+    if len(wave)-len(flux) == 0:
+        fluxgrid = interpolate_flux_wave(wave, flux)
+        noisegrid = interpolate_flux_wave(wave, noise)
+        max_region = [fluxgrid[wavegrid_list.index(i)] for i in wavegrid if 1.4>i>1.2]
+        max_flux = np.nanmax(max_region)
+        fluxgrid_array=np.array(fluxgrid)
+        noisegrid_array=np.array(noisegrid)
+        fluxgrid_array = fluxgrid_array/max_flux
+        noisegrid_array = noisegrid_array/max_flux
+        fluxgrid = list(fluxgrid_array)
+        noisegrid = list(noisegrid_array)
+        if len(fluxgrid)==409:
+            interpol_flux = fluxgrid
+            interpol_noise = noisegrid
+        else:
+            return
+    else:
+        return "Flux and wave lists dont match"
+        
+    return interpol_flux,interpol_noise
+
+
+
+def star_parametrize(interpol_flux,interpol_noise):
+    '''
+    Juan Diego added this function on Feb 12 2023
+
+    This function takes a flux and noise (that should be first interpolated using the function star_formatting) and outputs the name of the Random Forest model that should be used (with the function star_classify)
+    The models have been built with spaceific groups of stars.
+    G1 refers to the first gruop, of primaries M7-L7 and secondaries T1-T8, G2 refers to the second gruop, of primaries L5-T2 and secondaries T2-T8
+    The classification of the star, however, will only take into account the primaries range because secondaries are not expected to contribute a lot to the definition of the type
+    low refers to an signal to noise ratio between 0 and 50, mid refers to an signal to noise ratio between 50 and 100, hig refers to an signal to noise ratio greater than 100
+
+    Arguments
+    ---------
+    Takes 2 arguments
+    interpol_flux  : list or numpy array of floats
+                    An array specifying flux density in f_lambda units
+
+    interpol_noise : list or numpy array of floats
+                    An array specifying uncertainty in the same units as flux
+    
+    Returns
+    -------
+    One outputs or two string outpus
+    If the star is classified as an L5, L6, or L7, it belongs to both G1 and G2, therefore outputting to values
+
+    Examples
+    --------
+    star_parametrize(interp_f,interp_n)
+                    'G1_hig'
+    '''
+
+    models=['G1_low','G1_mid','G1_hig','G2_low','G2_mid','G2_hig'] 
+#   calculate snr
+#   we calculate the snr with respect to the J-band (between 1.1-1.3 micro-meters)
+    noise_J = [interpol_noise[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
+    flux_J = [interpol_flux[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
+    snr = np.nanmedian(np.array(flux_J)/(np.array(noise_J)))
+    
+    
+#   classify type
+    interpol_flux = np.array(interpol_flux)
+    interpol_noise = np.array(interpol_noise)
+    sp_type = fast_classify(interpol_flux, interpol_noise)
+
+
+#   find the model that 
+
+    if snr<=50:
+        noise_val=0
+    elif 50<snr<100:
+        noise_val=1
+    elif 100<=snr:
+        noise_val=2
+    
+    if 16 <= sp_type <25:
+        grouping='G1'
+    elif 25 <= sp_type <=27:
+        grouping='G1 and G2'
+    elif 27 < sp_type <=32:
+        grouping='G2'
+    else:
+        return print('The given star does not fit in any of the Groups')
+    
+    
+    if grouping=='G1':
+        group_multiplier=0
+    elif grouping=='G2':
+        group_multiplier=1
+    else:
+        group_multiplier=[0,1]
+    
+    
+    if type(group_multiplier)==list:
+        model_value = [noise_val,3+noise_val]
+    else:
+        model_value = [3*group_multiplier + noise_val]
+
+    model_used=[models[i] for i in model_value]
+
+    if len(model_value)==2:
+        return model_used[0],model_used[1]
+    else: 
+        # len(model_value)==1
+        return model_used[0] 
 
 
 def readTemplates(file="single_spectra.h5"):
