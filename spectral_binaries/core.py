@@ -248,44 +248,43 @@ def normalize(wave, flux, unc, rng=[1.2, 1.35], method="median"):
     n_unc = unc / np.nanmax(flux[idx])
     return n_flux, n_unc
 
-def normalize_function(row):
-    """ Normalizes the given row between 1.2 and 1.3 microns, applies to noise and flux"""
-    fluxes = row.filter(like = 'flux').values
-    mask = np.logical_and(wavegrid>1.2, wavegrid<1.3)
-    normalization_factor = np.nanmedian(fluxes[mask])
-    newfluxes = fluxes / normalization_factor
-    noise = row.filter(like = 'noise').values
-    newnoise = noise / normalization_factor
-    flux_dict = dict(zip(['flux_'+ str(idx) for idx in range(len(newfluxes))], newfluxes))
-    noise_dict = dict(zip(['noise_' + str(idx) for idx in range(len(newnoise))], newnoise))
-    flux_dict.update(noise_dict)
-    return pd.Series(flux_dict)
+# def normalize_function(row):
+#     """ Normalizes the given row between 1.2 and 1.3 microns, applies to noise and flux"""
+#     fluxes = row.filter(like = 'flux').values
+#     mask = np.logical_and(WAVEGRID>1.2, WAVEGRID<1.3)
+#     normalization_factor = np.nanmedian(fluxes[mask])
+#     newfluxes = fluxes / normalization_factor
+#     noise = row.filter(like = 'noise').values
+#     newnoise = noise / normalization_factor
+#     flux_dict = dict(zip(['flux_'+ str(idx) for idx in range(len(newfluxes))], newfluxes))
+#     noise_dict = dict(zip(['noise_' + str(idx) for idx in range(len(newnoise))], newnoise))
+#     flux_dict.update(noise_dict)
+#     return pd.Series(flux_dict)
     
-def star_normalize_JD(flux, noise):
-    '''
-    Juan Diego added this function
+# def star_normalize_JD(flux, noise):
+#     '''
+#     This function normalizes the flux with the max flux in the region 1.2-1.4 micros and scales the noise accordingly.
+#     Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
 
-    This function normalizes the flux with the max flux in the region 1.2-1.4 micros and scales the noise accordingly.
-    Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
+#     Arguments
+#     ---------
+#     Takes flux and noise as lists/arrays.
 
-    Arguments
-    ---------
-    Takes flux and noise as lists/arrays.
+#     Returns
+#     -------
+#     Two outputs.
+#     The normalized flux as a list.
+#     The scaled noise as a list.
+#     '''
 
-    Returns
-    -------
-    Two outputs.
-    The normalized flux as a list.
-    The scaled noise as a list.
-    '''
+#     # takes the flux in the region from 1.2-1.4nm
+#     max_region = [flux[wavegrid_list.index(i)] for i in wavegrid if 1.2<i<1.4]
+#     # finds the maximum flux in that region
+#     max_flux = np.nanmax(max_region)
+#     # convert flux and noise to numpy arrays
+#     flux_array=np.array(flux)
+#     noise_array=np.array(noise)
 
-    # takes the flux in the region from 1.2-1.4nm
-    max_region = [flux[wavegrid_list.index(i)] for i in wavegrid if 1.2<i<1.4]
-    # finds the maximum flux in that region
-    max_flux = np.nanmax(max_region)
-    # convert flux and noise to numpy arrays
-    flux_array=np.array(flux)
-    noise_array=np.array(noise)
         
     # normaliz the flux and and scale the noise accordingly
     flux_array = flux_array/max_flux
@@ -300,6 +299,8 @@ def star_normalize_JD(flux, noise):
 
 def addNoise(wave, flux, unc, scale=1.0):
     """
+    added by Malina on 02/12/23.
+    
     Resamples data to add noise, scaled according to input scale factor (scale > 1 => increased noise)
 
     Parameters
@@ -332,50 +333,51 @@ def addNoise(wave, flux, unc, scale=1.0):
     >>> nflux, nunc = addNoise(wave,flux,unc,scale=5.)
 
     """
+    nunc = np.sqrt(unc**2 + (scale*unc)**2)
+    nflux = flux + np.random.normal(0, nunc)
 
-    pass
-
-
-def add_noise(fluxframe, noiseframe):
-    """
-    fluxframe is the total rows and columns of fluxes
-    noiseframe is the total rows and columns containing the noise values
-    This is the function Malina used.
-    """
-    n1 = random.uniform(0.01, 1)  # random number
-    noisy_df = np.sqrt(
-        noiseframe**2 + (n1 * noiseframe) ** 2
-    )  # adds in quadrature n1*noise and original noise
-    newflux = fluxframe + np.random.normal(
-        0, noisy_df
-    )  # adding the created + original noise to the flux
-    SNR = np.nanmedian(newflux.values / noisy_df.values)
-    return newflux, noisy_df, SNR
+    return nflux, nunc
 
 
-def star_snr_JD(flux,noise):
-    '''
-    Juan Diego added this function
+# def add_noise(fluxframe, noiseframe):
+#     """
+#     fluxframe is the total rows and columns of fluxes
+#     noiseframe is the total rows and columns containing the noise values
+#     This is the function Malina used.
+#     """
+#     n1 = random.uniform(0.01, 1)  # random number
+#     noisy_df = np.sqrt(
+#         noiseframe**2 + (n1 * noiseframe) ** 2
+#     )  # adds in quadrature n1*noise and original noise
+#     newflux = fluxframe + np.random.normal(
+#         0, noisy_df
+#     )  # adding the created + original noise to the flux
+#     SNR = np.nanmedian(newflux.values / noisy_df.values)
+#     return newflux, noisy_df, SNR
 
-    This function calculates the snr of a star when given the flux and the noise.
-    The snr is specifically calculated between wavelengths of 1.1-1.3 microns.
-    Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
 
-    Arguments
-    ---------
-    Takes flux and noise as lists/arrays.
+# def star_snr_JD(flux,noise):
+#     '''
+#     This function calculates the snr of a star when given the flux and the noise.
+#     The snr is specifically calculated between wavelengths of 1.1-1.3 microns.
+#     Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
 
-    Returns
-    -------
-    One output.
-    float
-    '''
+#     Arguments
+#     ---------
+#     Takes flux and noise as lists/arrays.
 
-    flux_Jband = [flux[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
-    noise_Jband = [noise[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
-    snr = np.nanmedian(np.array(flux_Jband)/(np.array(noise_Jband)))
+#     Returns
+#     -------
+#     One output.
+#     The snr as a number.
+#     '''
 
-    return snr
+#     flux_Jband = [flux[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
+#     noise_Jband = [noise[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
+#     snr = np.nanmedian(np.array(flux_Jband)/(np.array(noise_Jband)))
+
+#     return snr
+
 
 
 def star_formatting(flux, noise, wave):
