@@ -126,7 +126,7 @@ class FeatureSelectionWrapper:
         if not num_features:
             print(
                 "`num_features` unspecified. Using sqrt(number of X_train"
-                "features)."
+                " features)."
             )
             num_features = int(np.sqrt(len(X_train)))
 
