@@ -204,7 +204,7 @@ def plot_roc(
     None
     """
     plt.figure(figsize=(8, 6))
-    disp = RocCurveDisplay.from_estimator(model, X_test, y_test, color="black")
+    RocCurveDisplay.from_estimator(model, X_test, y_test, color="black")
     plt.title(
         f"{model.__class__.__name__} ROC Curve - Positive Class = Binary"
     )
@@ -240,7 +240,7 @@ def plot_prc(
     None
     """
     plt.figure(figsize=(8, 6))
-    disp = PrecisionRecallDisplay.from_estimator(
+    PrecisionRecallDisplay.from_estimator(
         model, X_test, y_test, color="black"
     )
     plt.title(
