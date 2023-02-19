@@ -167,7 +167,7 @@ def plot_feature_importance(
             edgecolor="black",
         )
 
-    plt.yticks(ticks=range(len(fi_df)), labels=fi_df["feature_names"])
+    plt.yticks(ticks=range(len(fi_df)), labels=fi_df["feature_names"][::-1])
     plt.title(f"{model.__class__.__name__} Feature Importance")
     plt.xlabel("Feature Importance")
     plt.ylabel("Feature Names")
