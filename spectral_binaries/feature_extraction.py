@@ -58,7 +58,7 @@ class FeatureSelectionWrapper:
     --------
     >>> estimator = RandomForestClassifier()
     >>> fs = FeatureSelectionWrapper(
-        "sequential", estimator=estimator, num_features=2
+            "sequential", estimator=estimator, num_features=2
         )
     >>> selected_features_train, _ = fs(X_train, X_test, y_train)
     >>> print("Selected features shape:", selected_features_train.shape)
@@ -126,14 +126,21 @@ class FeatureSelectionWrapper:
         if not num_features:
             print(
                 "`num_features` unspecified. Using sqrt(number of X_train"
-                "features)."
+                " features)."
             )
-            num_features = int(np.sqrt(len(X_train)))
+            num_features = int(np.sqrt(X_train.shape[1]))
 
         selector = SelectKBest(
             score_func=EXTRACTION_DICT[method], k=num_features
         )
+
+        # try:
         selector.fit(X_train, y_train)
+        # except ValueError:
+        #     raise ValueError(
+        #         "Input X must be non-negative. Are the data normalized "
+        #         "correctly?"
+        #     )
         selected_features_train = selector.transform(X_train)
         selected_features_test = selector.transform(X_test)
         return selected_features_train, selected_features_test
@@ -145,7 +152,6 @@ class FeatureSelectionWrapper:
         y_train: Union[pd.Series, np.ndarray],
         estimator: BaseEstimator,
         num_features: int,
-        cv: Optional[int] = 5,
         scoring: Optional[str] = "f1",
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Run wrapper-based feature selection on the training dataset.
@@ -172,8 +178,6 @@ class FeatureSelectionWrapper:
             The learning algorithm to use for feature selection.
         num_features : int
             The number of features to select.
-        cv : Optional[int], optional
-            The number of folds for cross-validation, by default 5.
         scoring : Optional[str], optional
             The scoring metric to use for feature selection, by default "f1".
 
@@ -185,18 +189,15 @@ class FeatureSelectionWrapper:
         if self.method == "sequential":
             selector = SequentialFeatureSelector(
                 estimator=estimator,
-                k_features=num_features,
-                forward=True,
+                n_features_to_select=num_features,
                 scoring=scoring,
-                cv=cv,
+                cv=None,
             )
         elif self.method == "recursive":
             selector = RFE(
                 estimator=estimator,
                 n_features_to_select=num_features,
                 step=1,
-                scoring=scoring,
-                cv=cv,
             )
         else:
             raise ValueError(
