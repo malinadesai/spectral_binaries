@@ -205,7 +205,7 @@ def classify(wave, flux, unc, method="kirkpatrick"):
 #     return standard_types[np.argmin(chi)]
 
 
-def fast_classify(flux, uncertainties, fit_range=[0.9, 2.4], telluric=True, method='full'):
+def fast_classify(flux, uncertainties, fit_range=[0.9, 2.4], telluric=False, method='full'):
     """
     This function was aded by Juan Diego to replace the previousfast classify
     The function uses the mathematical methd used by Bardalez 2014 to classify the stars comparing them to standards
@@ -240,6 +240,8 @@ def fast_classify(flux, uncertainties, fit_range=[0.9, 2.4], telluric=True, meth
     """
     if method=='kirkpatrick':
         fit_range=[0.9,1.4]
+    elif method=='full':
+        fit_range=[0.9,2.4]
     else:
         pass
 
@@ -991,13 +993,13 @@ def combine_two_spex_spectra(flux1,unc1,flux2,unc2):
     spt1 = fast_classify(flux1, unc1)
     spt2 = fast_classify(flux2, unc2)
 
-    # get magnitudes of types
-    absj1 = typeToMag(spt1)[0]
-    absj2 = typeToMag(spt2)[0]
+    # # get magnitudes of types
+    # absj1 = typeToMag(spt1)[0]
+    # absj2 = typeToMag(spt2)[0]
 
-    # Calibrate flux
-    flux1, unc1 = fluxCalibrate(flux1, unc1, "2MASS_J", absj1)
-    flux2, unc2 = fluxCalibrate(flux2, unc2, "2MASS_J", absj2)
+    # # Calibrate flux
+    # flux1, unc1 = fluxCalibrate(flux1, unc1, "2MASS_J", absj1)
+    # flux2, unc2 = fluxCalibrate(flux2, unc2, "2MASS_J", absj2)
 
     # Create combined spectrum
     flux3 = flux1 + flux2
@@ -1034,6 +1036,99 @@ def combine_two_spex_spectra(flux1,unc1,flux2,unc2):
     }
 
 
+def makeBinaryTemplates(stars_df):
+    """
+    Runs through the dataframe and recursively goes through all possible pairs (fast_type 2 ≥ fast_type 1) to make binary template set, and classifying the made up binary with fastclassify()
+    Parameters
+    ----------
+    stars_df : pandas dataframe
+                    A dataframe whose rows are the star templates and the columns are the name, wavegrid, flux, uncertainty, difference, and type of each star
+    Returns
+    -------
+    pandas dataframe
+            flux, uncertainty, wavegrid, type, and difference of each binary, and type of the primary and secondary
+    """
+
+    # pre-allocate
+    binary_type=[]
+    binary_flux=[]
+    binary_unce=[]
+    binary_diff=[]
+    binary_wave=[]
+    primar_type=[]
+    second_type=[]
+
+    stars_df = stars_df.sort_values(by=['fast_type'])    
+    stars_df = stars_df.reset_index(drop=True)
+    
+    for star1 in range(len(stars)-1):
+        for star2 in range(star1+1,len(stars_df)):
+            flux1 = stars_df.system_interpolated_flux[star1]
+            unc1  = stars_df.system_interpolated_noise[star1]
+            flux2 = stars_df.system_interpolated_flux[star2]
+            unc2  = stars_df.system_interpolated_noise[star2]
+            binary_dict = combine_two_spex_spectra(flux1,unc1,flux2,unc2)
+
+            binary_diff.append(binary_dict["difference_spectrum"])
+            binary_flux.append(binary_dict["system_interpolated_flux"])
+            binary_unce.append(binary_dict["system_interpolated_noise"])
+            binary_wave.append(stars_df.wavegrid[star1])
+            binary_type.append(binary_dict["system_type"])
+            primar_type.append(binary_dict["primary_type"])
+            second_type.append(binary_dict["secondary_type"])
+    
+    d = {"system_type":binary_type,"system_interpolated_flux":binary_flux,"system_interpolated_noise":binary_unce,"difference_spectrum":binary_diff,"wavegrid":binary_wave,"primary_type":primar_type,"secondary_type":second_type}
+    BinariesDataframe = pd.DataFrame(d)
+    
+    return BinariesDataframe
+
+
+def downselectTemplates (singles_df, binaries_df, singleSpT=None, primarySpT = None, secondarySpT=None, binarySpT=None):
+    """
+    Filters the given dataframes down  the dataframe and recursively goes through all possible pairs (fast_type 2 ≥ fast_type 1) to make binary template set, and classifying the made up binary with fastclassify()
+    Parameters
+    ----------
+    singles_df : pandas dataframe
+                    A dataframe whose rows are the star templates and the columns are the name, wavegrid, flux, uncertainty, difference, and type of each star
+    binaries_df : pandas dataframe
+                    A dataframe whose rows are the constructed binaries and the columns are the system type, flux, uncertainty, difference, wavegrid, and type of the primary and secondary stars
+    singleSpT : list or numpy array of 2 floats
+                Default = None
+                An array specifying the minimum and maximum spectral to select the signlge stars
+    primarySpT : list or numpy array of 2 floats
+                Default = None
+                An array specifying the minimum and maximum spectral to select the primary stars of the binaries
+    secondarySpT : list or numpy array of 2 floats
+                Default = None
+                An array specifying the minimum and maximum spectral to select the secondary stars of the binaries
+    binarySpT : list or numpy array of 2 floats
+                Default = None
+                An array specifying the minimum and maximum spectral to select the system type
+    Returns
+    -------
+    Two outputs, pandas dataframe
+            a filtered dataframe with singles of only the given types.
+            a filtered dataframe with binaries of only the given types.
+    """
+
+    if type(singleSpT)==list:
+        singles_df = singles_df[singles_df['fast_type'] >= singleSpT[0]]
+        singles_df = singles_df[singles_df['fast_type'] <= singleSpT[1]]
+    
+    if type(primarySpT)==list:
+        binaries_df = binaries_df[binaries_df['primary_type'] >= primarySpT[0]]
+        binaries_df = binaries_df[binaries_df['primary_type'] <= primarySpT[1]]
+    if type(secondarySpT)==list:
+        binaries_df = binaries_df[binaries_df['secondary_type'] >= secondarySpT[0]]
+        binaries_df = binaries_df[binaries_df['secondary_type'] <= secondarySpT[1]]
+    if type(binarySpT)==list:
+        binaries_df = binaries_df[binaries_df['system_type'] >= binarySpT[0]]
+        binaries_df = binaries_df[binaries_df['system_type'] <= binarySpT[1]]
+    
+    singles_df = singles_df.reset_index(drop=True)
+    binaries_df = binaries_df.reset_index(drop=True)
+    
+    return singles_df, binaries_df
 
 
 def trainRFClassify(
