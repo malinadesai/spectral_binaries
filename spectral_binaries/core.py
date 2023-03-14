@@ -21,11 +21,11 @@ from scipy.integrate import trapz
 # -----------------------------------------------------------------------------------------------------
 
 
-VERSION = "2023.02.07"
+VERSION = "2023.03.13"
 __version__ = VERSION
 GITHUB_URL = "https://github.com/Ultracool-Machine-Learning/spectral_binaries"
 CODE_PATH = os.path.dirname(os.path.abspath(__file__))
-DATA_FOLDER = CODE_PATH + "/data/"
+DATA_FOLDER = CODE_PATH + "/../data/"
 ERROR_CHECKING = False
 VEGAFILE = 'vega_kurucz.txt'
 
@@ -47,14 +47,17 @@ print(
 )
 
 
-filters_dic = {'filippazzo2015': { 'filters': {'2MASS_J': {'fitunc': 0.4,
-  'range': [16.0, 39.0],
-  'coeff': [3.478e-05, -0.002684, 0.07771, -1.058, 7.157, -8.35]},
-  'WISE_W2': {'fitunc': 0.4,
-  'range': [16.0, 39.0],
-  'coeff': [8.19e-06, -0.0006938, 0.02283, -0.3655, 3.032, -0.5043]}},
-  'sptoffset': 10}, 
-  'dupuy2012': { 'filters': {'MKO_Y': {'fitunc': 0.4,  'range': [16.0, 39.0],  'coeff': [-2.52638e-06, 0.000285027,   -0.0126151,   0.279438,   -3.26895,   19.5444,   -35.156]},
+#######################################################
+############## CONSTANTS AND INFORMATION ##############
+#######################################################
+
+absmag_relations = {
+'filippazzo2015': {'sptoffset': 10, 'filters': {
+  '2MASS_J': {'fitunc': 0.4,'range': [16.0, 39.0],'coeff': [3.478e-05, -0.002684, 0.07771, -1.058, 7.157, -8.35]},
+  'WISE_W2': {'fitunc': 0.4,'range': [16.0, 39.0],'coeff': [8.19e-06, -0.0006938, 0.02283, -0.3655, 3.032, -0.5043]}
+  }}, 
+'dupuy2012': {'sptoffset': 10, 'filters': {
+  'MKO_Y': {'fitunc': 0.4,  'range': [16.0, 39.0],  'coeff': [-2.52638e-06, 0.000285027,   -0.0126151,   0.279438,   -3.26895,   19.5444,   -35.156]},
   'MKO_J': {'fitunc': 0.39,  'range': [16.0, 39.0],  'coeff': [-1.9492e-06,   0.000227641,   -0.0103332,   0.232771,   -2.74405,   16.3986,   -28.3129]},
   'MKO_H': {'fitunc': 0.38,  'range': [16.0, 39.0],  'coeff': [-2.24083e-06,   0.000251601,   -0.011096,   0.245209,   -2.85705,   16.9138,   -29.7306]},
   'MKO_K': {'fitunc': 0.4,  'range': [16.0, 39.0],  'coeff': [-1.04935e-06,   0.000125731,   -0.00584342,   0.135177,   -1.6393,   10.1248,   -15.22]},
@@ -69,18 +72,25 @@ filters_dic = {'filippazzo2015': { 'filters': {'2MASS_J': {'fitunc': 0.4,
   'WISE_W1': {'fitunc': 0.39,  'range': [16.0, 39.0],  'coeff': [1.5804e-05, -0.000333944, -0.00438105, 0.355395, 7.14765]},
   'WISE_W2': {'fitunc': 0.35,  'range': [16.0, 39.0],  'coeff': [1.78555e-05, -0.000881973, 0.0114325, 0.192354, 7.46564]},
   'WISE_W3': {'fitunc': 0.43,  'range': [16.0, 39.0],  'coeff': [2.37656e-05, -0.00128563, 0.020174, 0.0664242, 7.81181]},
-  'WISE_W4': {'fitunc': 0.76,  'range': [16.0, 39.0],  'coeff': [-0.00216042, 0.11463, 7.78974]}}, 
-  'sptoffset': 10}}
+  'WISE_W4': {'fitunc': 0.76,  'range': [16.0, 39.0],  'coeff': [-0.00216042, 0.11463, 7.78974]}, 
+  }}}
+
+# read in standards
+df = pd.read_hdf(DATA_FOLDER+'standards.h5')
+STANDARDS = {'WAVE': df['wavegrid'].iloc[0],'SPT':df['sptype'],'FLUX':df['interpolated_flux']}
+#STANDARDS = {'WAVE': df['wavegrid'].iloc[0],'STDS':{}}
+#for i in range(len(df)): STANDARDS['STDS'][df['sptype'].iloc[i]] = df['interpolated_flux'].iloc[i]
 
 
 #######################################################
 ########## BASIC SPECTRAL ANALYSIS FUNCTIONS ##########
 #######################################################
 
-def interpolate_flux_wave(wave, flux, wgrid=wavegrid):
+### NOTE: THIS NEEDS TO ALSO INTERPOLATE UNCERTIANTY
+### NEED TO FOLD THIS INTO A SPECTRUM CLASS
+def interpolate_flux_wave(wave, flux, wgrid,verbose=True):
   
   '''
-  Juan Diego changed wavegrid to be a default parameter but to be possible to select another wavelength (fwave in filterMag function)
   filterMag function requires interpolation to different wavelengths
 
   Function to interpolate the flux from the stars to the wavegrid we are working on
@@ -94,7 +104,6 @@ def interpolate_flux_wave(wave, flux, wgrid=wavegrid):
                   An array specifying flux density in f_lambda units of thegiven star
   
   wgrid : list or numpy array of floats
-                  Default = wavegrid
                   An array specifying wavelength in units of microns on which the star will be interpolated
     
   Returns
@@ -106,7 +115,7 @@ def interpolate_flux_wave(wave, flux, wgrid=wavegrid):
   return f(wgrid)
 
 
-def measureSN(wave, flux, unc, rng=[1.2, 1.35]):
+def measureSN(wave, flux, unc, rng=[1.2, 1.35],verbose=True):
     """
     Measures the signal-to-noise of a spectrum over a specified wavelength range
 
@@ -207,17 +216,23 @@ def classify(wave, flux, unc, method="kirkpatrick"):
 #     return standard_types[np.argmin(chi)]
 
 
-def fast_classify(flux, uncertainties, fit_range=[0.9, 2.4], telluric=False, method='full'):
+## NOTE: NEED OPTIONAL PLOTTING, ALSO RETURN NOT JUST SPT BUT ALSO SCALE FACTOR AND CHI2
+def fast_classify(wave,flux,unc,fit_range=[0.9, 2.4], standards=STANDARDS,telluric=False, method='full'):
     """
     This function was aded by Juan Diego to replace the previousfast classify
     The function uses the mathematical methd used by Bardalez 2014 to classify the stars comparing them to standards
     
     Parameters
     ----------
+    wave : list or numpy array of floats
+                An array specifying wavelength in microns
     flux : list or numpy array of floats
                 An array specifying flux density in f_lambda units
     uncertainties : list or numpy array of floats
                 An array specifying uncertainty in the same units as flux
+    standards : dict
+                Dictionary containind 1D array 'WAVE', 1D array 'SPT', and Nx1D array 'FLUX'
+                it is assumed 'WAVE' in this array is same as input spectrum
     fit_range : list or numpy array of 2 floats
                 Default = [0.9, 2.4]
                 An array specifying the wavelength values between which the function will be classified
@@ -247,28 +262,28 @@ def fast_classify(flux, uncertainties, fit_range=[0.9, 2.4], telluric=False, met
     else:
         pass
 
-    w = np.where(np.logical_and(wavegrid >= fit_range[0], wavegrid <= fit_range[1]))[0]
+    w = np.where(np.logical_and(wave >= fit_range[0], wave <= fit_range[1]))[0]
 
     scales, chi = [], []
 
     # weights = np.array([wavegrid[1]-wavegrid[0]] + [(wavegrid[i]-wavegrid[i-1])/2 + (wavegrid[i+1]-wavegrid[i])/2 for i in w[1:-1]] + [wavegrid[-1]-wavegrid[-2]])
     # weights = np.array([wavegrid[1]-wavegrid[0]] + [(wavegrid[i+1]-wavegrid[i-1])/2 for i in w[1:-1]] + [wavegrid[-1]-wavegrid[-2]])
-    weights = np.array([wavegrid[1]-wavegrid[0]] + list((wavegrid[2:]-wavegrid[:-2])/2) + [wavegrid[-1]-wavegrid[-2]])
+#    weights = np.array([wave[1]-wave[0]] + list((wave[2:]-wave[:-2])/2) + [wave[-1]-wave[-2]])
+    weights = np.ones(len(wave))
 
     if telluric==True:
         msk = np.ones(len(weights))
         msk[np.where(np.logical_or(np.logical_and(wavegrid > 1.35,wavegrid < 1.42), np.logical_and(wavegrid > 1.8,wavegrid < 1.95)))] = 0
         weights = weights*msk
-    else:
-        pass
 
     # Loop through standards
-    for std in interpol_standards:
-        scale = np.nansum((flux[w] * std[w]) / (uncertainties[w] ** 2)) / np.nansum((std[w] ** 2) / (uncertainties[w] ** 2))
+    for std in standards['FLUX']:
+        scale = np.nansum( weights*(flux * std) / (unc ** 2)) / np.nansum((weights*std**2) / (unc ** 2))
         scales.append(scale)
-        chisquared = np.nansum(weights[w]*((flux[w] - (std[w] * scales[-1])) ** 2) / (uncertainties[w] ** 2))
+        chisquared = np.nansum(weights*((flux - (std * scales[-1])) ** 2) / (unc ** 2))
         chi.append(chisquared)
-    return standard_types[np.argmin(chi)]
+
+    return standards['SPT'][np.argmin(chi)]
 
 
 
@@ -317,52 +332,52 @@ def normalize(wave, flux, unc, rng=[1.2, 1.35], method="median"):
     n_unc = unc / np.nanmax(flux[idx])
     return n_flux, n_unc
 
-def normalize_function(row):
-    """ Normalizes the given row between 1.2 and 1.3 microns, applies to noise and flux"""
-    fluxes = row.filter(like = 'flux').values
-    mask = np.logical_and(WAVEGRID>1.2, WAVEGRID<1.3)
-    normalization_factor = np.nanmedian(fluxes[mask])
-    newfluxes = fluxes / normalization_factor
-    noise = row.filter(like = 'noise').values
-    newnoise = noise / normalization_factor
-    flux_dict = dict(zip(['flux_'+ str(idx) for idx in range(len(newfluxes))], newfluxes))
-    noise_dict = dict(zip(['noise_' + str(idx) for idx in range(len(newnoise))], newnoise))
-    flux_dict.update(noise_dict)
-    return pd.Series(flux_dict)
+# def normalize_function(row):
+#     """ Normalizes the given row between 1.2 and 1.3 microns, applies to noise and flux"""
+#     fluxes = row.filter(like = 'flux').values
+#     mask = np.logical_and(WAVEGRID>1.2, WAVEGRID<1.3)
+#     normalization_factor = np.nanmedian(fluxes[mask])
+#     newfluxes = fluxes / normalization_factor
+#     noise = row.filter(like = 'noise').values
+#     newnoise = noise / normalization_factor
+#     flux_dict = dict(zip(['flux_'+ str(idx) for idx in range(len(newfluxes))], newfluxes))
+#     noise_dict = dict(zip(['noise_' + str(idx) for idx in range(len(newnoise))], newnoise))
+#     flux_dict.update(noise_dict)
+#     return pd.Series(flux_dict)
     
-def star_normalize_JD(flux, noise):
-    '''
-    This function normalizes the flux with the max flux in the region 1.2-1.4 micros and scales the noise accordingly.
-    Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
+# def star_normalize_JD(flux, noise):
+#     '''
+#     This function normalizes the flux with the max flux in the region 1.2-1.4 micros and scales the noise accordingly.
+#     Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
 
-    Arguments
-    ---------
-    Takes flux and noise as lists/arrays.
+#     Arguments
+#     ---------
+#     Takes flux and noise as lists/arrays.
 
-    Returns
-    -------
-    Two outputs.
-    The normalized flux as a list.
-    The scaled noise as a list.
-    '''
+#     Returns
+#     -------
+#     Two outputs.
+#     The normalized flux as a list.
+#     The scaled noise as a list.
+#     '''
 
-    # takes the flux in the region from 1.2-1.4nm
-    max_region = [flux[wavegrid_list.index(i)] for i in wavegrid if 1.2<i<1.4]
-    # finds the maximum flux in that region
-    max_flux = np.nanmax(max_region)
-    # convert flux and noise to numpy arrays
-    flux_array=np.array(flux)
-    noise_array=np.array(noise)
+#     # takes the flux in the region from 1.2-1.4nm
+#     max_region = [flux[wavegrid_list.index(i)] for i in wavegrid if 1.2<i<1.4]
+#     # finds the maximum flux in that region
+#     max_flux = np.nanmax(max_region)
+#     # convert flux and noise to numpy arrays
+#     flux_array=np.array(flux)
+#     noise_array=np.array(noise)
         
-    # normaliz the flux and and scale the noise accordingly
-    flux_array = flux_array/max_flux
-    noise_array = noise_array/max_flux
+#     # normaliz the flux and and scale the noise accordingly
+#     flux_array = flux_array/max_flux
+#     noise_array = noise_array/max_flux
         
-    # convert the numpy arrays back to lists
-    fluxgrid = list(flux_array)
-    noisegrid = list(noise_array)
+#     # convert the numpy arrays back to lists
+#     fluxgrid = list(flux_array)
+#     noisegrid = list(noise_array)
 
-    return fluxgrid, noisegrid
+#     return fluxgrid, noisegrid
 
 
 def addNoise(wave, flux, unc, scale=1.0):
@@ -400,47 +415,52 @@ def addNoise(wave, flux, unc, scale=1.0):
 
     """
 
-    pass
+    sunc = unc*scale
+    if scale > 1.: nunc = sunc
+    else: nunc = unc
+    nflux = np.random.normal(flux,sunc)  # random number
+    return nflux, nunc
 
 
-def add_noise(fluxframe, noiseframe):
-    """
-    fluxframe is the total rows and columns of fluxes
-    noiseframe is the total rows and columns containing the noise values
-    This is the function Malina used.
-    """
-    n1 = random.uniform(0.01, 1)  # random number
-    noisy_df = np.sqrt(
-        noiseframe**2 + (n1 * noiseframe) ** 2
-    )  # adds in quadrature n1*noise and original noise
-    newflux = fluxframe + np.random.normal(
-        0, noisy_df
-    )  # adding the created + original noise to the flux
-    SNR = np.nanmedian(newflux.values / noisy_df.values)
-    return newflux, noisy_df, SNR
+
+# def add_noise(fluxframe, noiseframe):
+#     """
+#     fluxframe is the total rows and columns of fluxes
+#     noiseframe is the total rows and columns containing the noise values
+#     This is the function Malina used.
+#     """
+#     n1 = random.uniform(0.01, 1)  # random number
+#     noisy_df = np.sqrt(
+#         noiseframe**2 + (n1 * noiseframe) ** 2
+#     )  # adds in quadrature n1*noise and original noise
+#     newflux = fluxframe + np.random.normal(
+#         0, noisy_df
+#     )  # adding the created + original noise to the flux
+#     SNR = np.nanmedian(newflux.values / noisy_df.values)
+#     return newflux, noisy_df, SNR
 
 
-def star_snr_JD(flux,noise):
-    '''
-    This function calculates the snr of a star when given the flux and the noise.
-    The snr is specifically calculated between wavelengths of 1.1-1.3 microns.
-    Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
+# def star_snr_JD(flux,noise):
+#     '''
+#     This function calculates the snr of a star when given the flux and the noise.
+#     The snr is specifically calculated between wavelengths of 1.1-1.3 microns.
+#     Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
 
-    Arguments
-    ---------
-    Takes flux and noise as lists/arrays.
+#     Arguments
+#     ---------
+#     Takes flux and noise as lists/arrays.
 
-    Returns
-    -------
-    One output.
-    The snr as a number.
-    '''
+#     Returns
+#     -------
+#     One output.
+#     The snr as a number.
+#     '''
 
-    flux_Jband = [flux[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
-    noise_Jband = [noise[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
-    snr = np.nanmedian(np.array(flux_Jband)/(np.array(noise_Jband)))
+#     flux_Jband = [flux[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
+#     noise_Jband = [noise[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
+#     snr = np.nanmedian(np.array(flux_Jband)/(np.array(noise_Jband)))
 
-    return snr
+#     return snr
 
 
 
