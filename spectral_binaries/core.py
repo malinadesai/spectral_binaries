@@ -42,7 +42,7 @@ print("You are currently using version {}\n".format(VERSION))
 # print('If you make use of any features of this toolkit for your research, please remember to cite the paper:')
 # print('\n{}; Bibcode: {}\n'.format(CITATION,BIBCODE))
 print(
-    "Please report any errors are feature requests to our github page, {}\n\n".format(
+    "Please report any errors or feature requests to our github page, {}\n\n".format(
         GITHUB_URL
     )
 )
