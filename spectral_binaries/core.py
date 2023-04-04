@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import scipy.interpolate as interp
 from scipy.integrate import trapz
+import re
 
 # JD import and data needed - removed to these can be added in holistically
 # wavegrid=np.array([0.90067 , 0.904086, 0.907521, 0.910973, 0.914444, 0.917932, 0.921437, 0.924961, 0.928501, 0.932059, 0.935634, 0.939225, 0.942834, 0.946459, 0.9501  , 0.953758, 0.957431, 0.961121, 0.964826, 0.968547, 0.972283, 0.976035, 0.979801, 0.983582, 0.987378, 0.991188, 0.995013, 0.998851, 1.0027  , 1.00657 , 1.01045 , 1.01434 , 1.01825 , 1.02217 , 1.0261  , 1.03004 , 1.034   , 1.03797 , 1.04195 , 1.04594 , 1.04994 , 1.05395 , 1.05798 , 1.06202 , 1.06606 , 1.07012 , 1.07419 , 1.07826 , 1.08235 , 1.08645 , 1.09055 , 1.09467 , 1.09879 , 1.10292 , 1.10706 , 1.11121 , 1.11537 , 1.11954 , 1.12371 , 1.12789 , 1.13208 , 1.13627 , 1.14047 , 1.14468 , 1.14889 , 1.15311 , 1.15734 , 1.16157 , 1.16581 , 1.17005 , 1.1743  , 1.17856 , 1.18281 , 1.18708 , 1.19135 , 1.19562 , 1.19989 , 1.20417 , 1.20845 , 1.21274 , 1.21703 , 1.22132 , 1.22562 , 1.22992 , 1.23422 , 1.23852 , 1.24283 , 1.24714 , 1.25145 , 1.25576 , 1.26007 , 1.26438 , 1.2687  , 1.27301 , 1.27733 , 1.28165 , 1.28596 , 1.29028 , 1.2946  , 1.29892 , 1.30324 , 1.30755 , 1.31187 , 1.31619 , 1.3205  , 1.32482 , 1.32913 , 1.33344 , 1.33776 , 1.34206 , 1.34637 , 1.35068 , 1.35498 , 1.35929 , 1.36359 , 1.36788 , 1.37218 , 1.37647 , 1.38076 , 1.38505 , 1.38933 , 1.39362 , 1.39789 , 1.40217 , 1.40644 , 1.41071 , 1.41497 , 1.41923 , 1.42349 , 1.42775 , 1.432   , 1.43624 , 1.44048 , 1.44472 , 1.44895 , 1.45318 , 1.4574  , 1.46162 , 1.46584 , 1.47005 , 1.47425 , 1.47845 , 1.48265 , 1.48684 , 1.49102 , 1.4952  , 1.49938 , 1.50354 , 1.50771 , 1.51187 , 1.51602 , 1.52017 , 1.52431 , 1.52844 , 1.53257 , 1.5367  , 1.54082 , 1.54493 , 1.54903 , 1.55314 , 1.55723 , 1.56132 , 1.5654  , 1.56948 , 1.57355 , 1.57761 , 1.58167 , 1.58572 , 1.58977 , 1.5938  , 1.59784 , 1.60186 , 1.60588 , 1.6099  , 1.6139  , 1.6179  , 1.6219  , 1.62589 , 1.62987 , 1.63384 , 1.63781 , 1.64177 , 1.64573 , 1.64967 , 1.65362 , 1.65755 , 1.66148 , 1.6654  , 1.66932 , 1.67323 , 1.67713 , 1.68102 , 1.68491 , 1.6888  , 1.69267 , 1.69654 , 1.70041 , 1.70426 , 1.70811 , 1.71196 , 1.71579 , 1.71962 , 1.72345 , 1.72726 , 1.73108 , 1.73488 , 1.73868 , 1.74247 , 1.74626 , 1.75004 , 1.75381 , 1.75757 , 1.76133 , 1.76509 , 1.76884 , 1.77258 , 1.77631 , 1.78004 , 1.78376 , 1.78748 , 1.79119 , 1.7949  , 1.79859 , 1.80229 , 1.80597 , 1.80965 , 1.81333 , 1.817   , 1.82066 , 1.82431 , 1.82796 , 1.83161 , 1.83525 , 1.83888 , 1.84251 , 1.84613 , 1.84975 , 1.85336 , 1.85696 , 1.86056 , 1.86415 , 1.86774 , 1.87132 , 1.8749  , 1.87847 , 1.88204 , 1.8856  , 1.88915 , 1.8927  , 1.89625 , 1.89979 , 1.90332 , 1.90685 , 1.91037 , 1.91389 , 1.9174  , 1.92091 , 1.92441 , 1.92791 , 1.9314  , 1.93489 , 1.93837 , 1.94185 , 1.94532 , 1.94879 , 1.95225 , 1.95571 , 1.95916 , 1.96261 , 1.96605 , 1.96949 , 1.97293 , 1.97635 , 1.97978 , 1.9832  , 1.98661 , 1.99002 , 1.99342 , 1.99682 , 2.00022 , 2.00361 , 2.007   , 2.01038 , 2.01375 , 2.01713 , 2.02049 , 2.02386 , 2.02722 , 2.03057 , 2.03392 , 2.03726 , 2.0406  , 2.04394 , 2.04727 , 2.0506  , 2.05392 , 2.05724 , 2.06055 , 2.06386 , 2.06716 , 2.07046 , 2.07376 , 2.07705 , 2.08033 , 2.08361 , 2.08689 , 2.09016 , 2.09343 , 2.09669 , 2.09995 , 2.1032  , 2.10645 , 2.1097  , 2.11294 , 2.11618 , 2.11941 , 2.12263 , 2.12586 , 2.12907 , 2.13229 , 2.13549 , 2.1387  , 2.1419  , 2.14509 , 2.14828 , 2.15147 , 2.15465 , 2.15782 , 2.16099 , 2.16416 , 2.16732 , 2.17048 , 2.17363 , 2.17678 , 2.17992 , 2.18306 , 2.18619 , 2.18932 , 2.19244 , 2.19556 , 2.19867 , 2.20178 , 2.20488 , 2.20798 , 2.21108 , 2.21416 , 2.21725 , 2.22033 , 2.2234  , 2.22647 , 2.22953 , 2.23259 , 2.23564 , 2.23869 , 2.24173 , 2.24477 , 2.24781 , 2.25083 , 2.25386 , 2.25687 , 2.25989 , 2.26289 , 2.26589 , 2.26889 , 2.27188 , 2.27487 , 2.27785 , 2.28083 , 2.2838  , 2.28676 , 2.28972 , 2.29268 , 2.29563 , 2.29857 , 2.30151 , 2.30445 , 2.30738 , 2.3103  , 2.31322 , 2.31613 , 2.31904 , 2.32195 , 2.32485 , 2.32774 , 2.33063 , 2.33351 , 2.33639 , 2.33926 , 2.34213 , 2.345   , 2.34786 , 2.35071 , 2.35356 , 2.35641 , 2.35925 , 2.36208 , 2.36492 , 2.36774 , 2.37057 , 2.37338 , 2.3762  , 2.37901 , 2.38182 , 2.38462 , 2.38742 , 2.39021 , 2.393   , 2.39579 , 2.39857 ])
@@ -21,11 +22,11 @@ from scipy.integrate import trapz
 # -----------------------------------------------------------------------------------------------------
 
 
-VERSION = "2023.02.07"
+VERSION = "2023.03.13"
 __version__ = VERSION
 GITHUB_URL = "https://github.com/Ultracool-Machine-Learning/spectral_binaries"
 CODE_PATH = os.path.dirname(os.path.abspath(__file__))
-DATA_FOLDER = CODE_PATH + "/data/"
+DATA_FOLDER = CODE_PATH + "/../data/"
 ERROR_CHECKING = False
 VEGAFILE = 'vega_kurucz.txt'
 
@@ -47,14 +48,17 @@ print(
 )
 
 
-filters_dic = {'filippazzo2015': { 'filters': {'2MASS_J': {'fitunc': 0.4,
-  'range': [16.0, 39.0],
-  'coeff': [3.478e-05, -0.002684, 0.07771, -1.058, 7.157, -8.35]},
-  'WISE_W2': {'fitunc': 0.4,
-  'range': [16.0, 39.0],
-  'coeff': [8.19e-06, -0.0006938, 0.02283, -0.3655, 3.032, -0.5043]}},
-  'sptoffset': 10}, 
-  'dupuy2012': { 'filters': {'MKO_Y': {'fitunc': 0.4,  'range': [16.0, 39.0],  'coeff': [-2.52638e-06, 0.000285027,   -0.0126151,   0.279438,   -3.26895,   19.5444,   -35.156]},
+#######################################################
+############## CONSTANTS AND INFORMATION ##############
+#######################################################
+
+absmag_relations = {
+'filippazzo2015': {'sptoffset': 10, 'filters': {
+  '2MASS_J': {'fitunc': 0.4,'range': [16.0, 39.0],'coeff': [3.478e-05, -0.002684, 0.07771, -1.058, 7.157, -8.35]},
+  'WISE_W2': {'fitunc': 0.4,'range': [16.0, 39.0],'coeff': [8.19e-06, -0.0006938, 0.02283, -0.3655, 3.032, -0.5043]}
+  }}, 
+'dupuy2012': {'sptoffset': 10, 'filters': {
+  'MKO_Y': {'fitunc': 0.4,  'range': [16.0, 39.0],  'coeff': [-2.52638e-06, 0.000285027,   -0.0126151,   0.279438,   -3.26895,   19.5444,   -35.156]},
   'MKO_J': {'fitunc': 0.39,  'range': [16.0, 39.0],  'coeff': [-1.9492e-06,   0.000227641,   -0.0103332,   0.232771,   -2.74405,   16.3986,   -28.3129]},
   'MKO_H': {'fitunc': 0.38,  'range': [16.0, 39.0],  'coeff': [-2.24083e-06,   0.000251601,   -0.011096,   0.245209,   -2.85705,   16.9138,   -29.7306]},
   'MKO_K': {'fitunc': 0.4,  'range': [16.0, 39.0],  'coeff': [-1.04935e-06,   0.000125731,   -0.00584342,   0.135177,   -1.6393,   10.1248,   -15.22]},
@@ -69,18 +73,26 @@ filters_dic = {'filippazzo2015': { 'filters': {'2MASS_J': {'fitunc': 0.4,
   'WISE_W1': {'fitunc': 0.39,  'range': [16.0, 39.0],  'coeff': [1.5804e-05, -0.000333944, -0.00438105, 0.355395, 7.14765]},
   'WISE_W2': {'fitunc': 0.35,  'range': [16.0, 39.0],  'coeff': [1.78555e-05, -0.000881973, 0.0114325, 0.192354, 7.46564]},
   'WISE_W3': {'fitunc': 0.43,  'range': [16.0, 39.0],  'coeff': [2.37656e-05, -0.00128563, 0.020174, 0.0664242, 7.81181]},
-  'WISE_W4': {'fitunc': 0.76,  'range': [16.0, 39.0],  'coeff': [-0.00216042, 0.11463, 7.78974]}}, 
-  'sptoffset': 10}}
+  'WISE_W4': {'fitunc': 0.76,  'range': [16.0, 39.0],  'coeff': [-0.00216042, 0.11463, 7.78974]}, 
+  }}}
+
+# read in standards
+df = pd.read_hdf(DATA_FOLDER+'standards.h5')
+STANDARDS = {'WAVE': df['wavegrid'].iloc[0],'SPT':df['sptype'],'FLUX':df['interpolated_flux'], 'UNC':df['interpolated_noise']}
+wavegrid = STANDARDS['WAVE']
+#STANDARDS = {'WAVE': df['wavegrid'].iloc[0],'STDS':{}}
+#for i in range(len(df)): STANDARDS['STDS'][df['sptype'].iloc[i]] = df['interpolated_flux'].iloc[i]
 
 
 #######################################################
 ########## BASIC SPECTRAL ANALYSIS FUNCTIONS ##########
 #######################################################
 
-def interpolate_flux_wave(wave, flux, wgrid=wavegrid):
+### NOTE: THIS NEEDS TO ALSO INTERPOLATE UNCERTIANTY
+### NEED TO FOLD THIS INTO A SPECTRUM CLASS
+def interpolate_flux_wave(wave, flux, wgrid,verbose=True):
   
   '''
-  Juan Diego changed wavegrid to be a default parameter but to be possible to select another wavelength (fwave in filterMag function)
   filterMag function requires interpolation to different wavelengths
 
   Function to interpolate the flux from the stars to the wavegrid we are working on
@@ -94,7 +106,6 @@ def interpolate_flux_wave(wave, flux, wgrid=wavegrid):
                   An array specifying flux density in f_lambda units of thegiven star
   
   wgrid : list or numpy array of floats
-                  Default = wavegrid
                   An array specifying wavelength in units of microns on which the star will be interpolated
     
   Returns
@@ -106,7 +117,7 @@ def interpolate_flux_wave(wave, flux, wgrid=wavegrid):
   return f(wgrid)
 
 
-def measureSN(wave, flux, unc, rng=[1.2, 1.35]):
+def measureSN(wave, flux, unc, rng=[1.2, 1.35],verbose=True):
     """
     Measures the signal-to-noise of a spectrum over a specified wavelength range
 
@@ -180,6 +191,66 @@ def classify(wave, flux, unc, method="kirkpatrick"):
     pass
 
 
+def typeToNum(inp):
+    '''
+    Converts between string and numeric spectral types, with the option of specifying the class prefix/suffix and uncertainty tags
+
+    Parameters
+    ----------
+        Spectral type to convert. Can convert a number or a string from 0.0 (K0) and 49.0 (Y9).
+
+    Returns
+    ------- 
+        The number or string of a spectral type
+
+    Example
+    -------
+        >>> print splat.typeToNum(30)
+            T0.0
+        >>> print splat.typeToNum('T0.0')
+            30.0
+        >>> print splat.typeToNum(50)
+            Spectral type number must be between 0 (K0) and 49.0 (Y9)
+            nan
+    '''
+
+    spletter = 'KMLTY'
+    
+    if isinstance(inp,list):
+        raise ValueError('\nInput to typeToNum() must be a single element (string or number)')
+    
+    elif isinstance(inp,str):
+        inp = inp.split('+/-')[0]
+        inp = inp.replace('...','').replace(' ','')
+        sptype = re.findall('[{}]'.format(spletter),inp.upper())
+        outval = 0.
+        outval = spletter.find(sptype[0])*10.
+        spind = inp.find(sptype[0])+1
+        if inp.find('.') < 0:
+            outval = outval+float(inp[spind])
+        else:
+            try:
+                outval = outval+float(inp[spind:spind+3])
+                spind = spind+3
+            except:
+                print('\nProblem converting input type {} to a numeric type'.format(inp))
+                outval = np.nan
+        return outval
+
+    
+    elif type(inp) == int or float:
+        spind = int(abs(inp/10.))
+        if spind < 0 or spind >= len(spletter): 
+            print('Spectral type number must be between 0 ({}0) and {} ({}9)'.format(spletter[0],len(spletter)*10.-1.,spletter[-1]))
+            print('N/A')
+        spdec = np.around(inp,1)-spind*10.        
+        return '{}{:3.1f}'.format(spletter[spind],spdec)
+    
+    else:
+        print('\nWarning: could not recognize format of spectral type {}\n'.format(inp))
+        return inp
+    
+
 # JUAN DIEGO: I implemented this function at the bottom of the document
 
 # def get_absolute_mag_j2mass(sptype):
@@ -207,17 +278,23 @@ def classify(wave, flux, unc, method="kirkpatrick"):
 #     return standard_types[np.argmin(chi)]
 
 
-def fast_classify(flux, uncertainties, fit_range=[0.9, 2.4], telluric=True, method='full'):
+## NOTE: NEED OPTIONAL PLOTTING, ALSO RETURN NOT JUST SPT BUT ALSO SCALE FACTOR AND CHI2
+def fast_classify(wave,flux,unc,fit_range=[0.9, 2.4], standards=STANDARDS,telluric=False, method='full'):
     """
     This function was aded by Juan Diego to replace the previousfast classify
     The function uses the mathematical methd used by Bardalez 2014 to classify the stars comparing them to standards
     
     Parameters
     ----------
+    wave : list or numpy array of floats
+                An array specifying wavelength in microns
     flux : list or numpy array of floats
                 An array specifying flux density in f_lambda units
     uncertainties : list or numpy array of floats
                 An array specifying uncertainty in the same units as flux
+    standards : dict
+                Dictionary containind 1D array 'WAVE', 1D array 'SPT', and Nx1D array 'FLUX'
+                it is assumed 'WAVE' in this array is same as input spectrum
     fit_range : list or numpy array of 2 floats
                 Default = [0.9, 2.4]
                 An array specifying the wavelength values between which the function will be classified
@@ -237,36 +314,38 @@ def fast_classify(flux, uncertainties, fit_range=[0.9, 2.4], telluric=True, meth
     -------
     >>> flux_21 = standards.interpolated_flux[21-10]
     >>> noise_21 = standards.interpolated_noise[21-10]
-    >>> fast_classify(flux_21, noise_21)
+    >>> fast_classify(wavegrid, flux_21, noise_21)
     21
     """
     if method=='kirkpatrick':
         fit_range=[0.9,1.4]
+    elif method=='full':
+        fit_range=[0.9,2.4]
     else:
         pass
 
-    w = np.where(np.logical_and(wavegrid >= fit_range[0], wavegrid <= fit_range[1]))[0]
+    w = np.where(np.logical_and(wave >= fit_range[0], wave <= fit_range[1]))[0]
 
     scales, chi = [], []
 
     # weights = np.array([wavegrid[1]-wavegrid[0]] + [(wavegrid[i]-wavegrid[i-1])/2 + (wavegrid[i+1]-wavegrid[i])/2 for i in w[1:-1]] + [wavegrid[-1]-wavegrid[-2]])
     # weights = np.array([wavegrid[1]-wavegrid[0]] + [(wavegrid[i+1]-wavegrid[i-1])/2 for i in w[1:-1]] + [wavegrid[-1]-wavegrid[-2]])
-    weights = np.array([wavegrid[1]-wavegrid[0]] + list((wavegrid[2:]-wavegrid[:-2])/2) + [wavegrid[-1]-wavegrid[-2]])
+    # weights = np.array([wave[1]-wave[0]] + list((wave[2:]-wave[:-2])/2) + [wave[-1]-wave[-2]])
+    weights = np.ones(len(wave))
 
     if telluric==True:
         msk = np.ones(len(weights))
         msk[np.where(np.logical_or(np.logical_and(wavegrid > 1.35,wavegrid < 1.42), np.logical_and(wavegrid > 1.8,wavegrid < 1.95)))] = 0
         weights = weights*msk
-    else:
-        pass
 
     # Loop through standards
-    for std in interpol_standards:
-        scale = np.nansum((flux[w] * std[w]) / (uncertainties[w] ** 2)) / np.nansum((std[w] ** 2) / (uncertainties[w] ** 2))
+    for std in standards['FLUX']:
+        scale = np.nansum( weights*(flux * std) / (unc ** 2)) / np.nansum((weights*std**2) / (unc ** 2))
         scales.append(scale)
-        chisquared = np.nansum(weights[w]*((flux[w] - (std[w] * scales[-1])) ** 2) / (uncertainties[w] ** 2))
+        chisquared = np.nansum(weights*((flux - (std * scales[-1])) ** 2) / (unc ** 2))
         chi.append(chisquared)
-    return standard_types[np.argmin(chi)]
+
+    return standards['SPT'][np.argmin(chi)]
 
 
 
@@ -315,52 +394,52 @@ def normalize(wave, flux, unc, rng=[1.2, 1.35], method="median"):
     n_unc = unc / np.nanmax(flux[idx])
     return n_flux, n_unc
 
-def normalize_function(row):
-    """ Normalizes the given row between 1.2 and 1.3 microns, applies to noise and flux"""
-    fluxes = row.filter(like = 'flux').values
-    mask = np.logical_and(WAVEGRID>1.2, WAVEGRID<1.3)
-    normalization_factor = np.nanmedian(fluxes[mask])
-    newfluxes = fluxes / normalization_factor
-    noise = row.filter(like = 'noise').values
-    newnoise = noise / normalization_factor
-    flux_dict = dict(zip(['flux_'+ str(idx) for idx in range(len(newfluxes))], newfluxes))
-    noise_dict = dict(zip(['noise_' + str(idx) for idx in range(len(newnoise))], newnoise))
-    flux_dict.update(noise_dict)
-    return pd.Series(flux_dict)
+# def normalize_function(row):
+#     """ Normalizes the given row between 1.2 and 1.3 microns, applies to noise and flux"""
+#     fluxes = row.filter(like = 'flux').values
+#     mask = np.logical_and(WAVEGRID>1.2, WAVEGRID<1.3)
+#     normalization_factor = np.nanmedian(fluxes[mask])
+#     newfluxes = fluxes / normalization_factor
+#     noise = row.filter(like = 'noise').values
+#     newnoise = noise / normalization_factor
+#     flux_dict = dict(zip(['flux_'+ str(idx) for idx in range(len(newfluxes))], newfluxes))
+#     noise_dict = dict(zip(['noise_' + str(idx) for idx in range(len(newnoise))], newnoise))
+#     flux_dict.update(noise_dict)
+#     return pd.Series(flux_dict)
     
-def star_normalize_JD(flux, noise):
-    '''
-    This function normalizes the flux with the max flux in the region 1.2-1.4 micros and scales the noise accordingly.
-    Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
+# def star_normalize_JD(flux, noise):
+#     '''
+#     This function normalizes the flux with the max flux in the region 1.2-1.4 micros and scales the noise accordingly.
+#     Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
 
-    Arguments
-    ---------
-    Takes flux and noise as lists/arrays.
+#     Arguments
+#     ---------
+#     Takes flux and noise as lists/arrays.
 
-    Returns
-    -------
-    Two outputs.
-    The normalized flux as a list.
-    The scaled noise as a list.
-    '''
+#     Returns
+#     -------
+#     Two outputs.
+#     The normalized flux as a list.
+#     The scaled noise as a list.
+#     '''
 
-    # takes the flux in the region from 1.2-1.4nm
-    max_region = [flux[wavegrid_list.index(i)] for i in wavegrid if 1.2<i<1.4]
-    # finds the maximum flux in that region
-    max_flux = np.nanmax(max_region)
-    # convert flux and noise to numpy arrays
-    flux_array=np.array(flux)
-    noise_array=np.array(noise)
+#     # takes the flux in the region from 1.2-1.4nm
+#     max_region = [flux[wavegrid_list.index(i)] for i in wavegrid if 1.2<i<1.4]
+#     # finds the maximum flux in that region
+#     max_flux = np.nanmax(max_region)
+#     # convert flux and noise to numpy arrays
+#     flux_array=np.array(flux)
+#     noise_array=np.array(noise)
         
-    # normaliz the flux and and scale the noise accordingly
-    flux_array = flux_array/max_flux
-    noise_array = noise_array/max_flux
+#     # normaliz the flux and and scale the noise accordingly
+#     flux_array = flux_array/max_flux
+#     noise_array = noise_array/max_flux
         
-    # convert the numpy arrays back to lists
-    fluxgrid = list(flux_array)
-    noisegrid = list(noise_array)
+#     # convert the numpy arrays back to lists
+#     fluxgrid = list(flux_array)
+#     noisegrid = list(noise_array)
 
-    return fluxgrid, noisegrid
+#     return fluxgrid, noisegrid
 
 
 def addNoise(wave, flux, unc, scale=1.0):
@@ -398,47 +477,52 @@ def addNoise(wave, flux, unc, scale=1.0):
 
     """
 
-    pass
+    sunc = unc*scale
+    if scale > 1.: nunc = sunc
+    else: nunc = unc
+    nflux = np.random.normal(flux,sunc)  # random number
+    return nflux, nunc
 
 
-def add_noise(fluxframe, noiseframe):
-    """
-    fluxframe is the total rows and columns of fluxes
-    noiseframe is the total rows and columns containing the noise values
-    This is the function Malina used.
-    """
-    n1 = random.uniform(0.01, 1)  # random number
-    noisy_df = np.sqrt(
-        noiseframe**2 + (n1 * noiseframe) ** 2
-    )  # adds in quadrature n1*noise and original noise
-    newflux = fluxframe + np.random.normal(
-        0, noisy_df
-    )  # adding the created + original noise to the flux
-    SNR = np.nanmedian(newflux.values / noisy_df.values)
-    return newflux, noisy_df, SNR
+
+# def add_noise(fluxframe, noiseframe):
+#     """
+#     fluxframe is the total rows and columns of fluxes
+#     noiseframe is the total rows and columns containing the noise values
+#     This is the function Malina used.
+#     """
+#     n1 = random.uniform(0.01, 1)  # random number
+#     noisy_df = np.sqrt(
+#         noiseframe**2 + (n1 * noiseframe) ** 2
+#     )  # adds in quadrature n1*noise and original noise
+#     newflux = fluxframe + np.random.normal(
+#         0, noisy_df
+#     )  # adding the created + original noise to the flux
+#     SNR = np.nanmedian(newflux.values / noisy_df.values)
+#     return newflux, noisy_df, SNR
 
 
-def star_snr_JD(flux,noise):
-    '''
-    This function calculates the snr of a star when given the flux and the noise.
-    The snr is specifically calculated between wavelengths of 1.1-1.3 microns.
-    Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
+# def star_snr_JD(flux,noise):
+#     '''
+#     This function calculates the snr of a star when given the flux and the noise.
+#     The snr is specifically calculated between wavelengths of 1.1-1.3 microns.
+#     Flux and noise should be interpolated using interpolate_flux_wave() beforehand.
 
-    Arguments
-    ---------
-    Takes flux and noise as lists/arrays.
+#     Arguments
+#     ---------
+#     Takes flux and noise as lists/arrays.
 
-    Returns
-    -------
-    One output.
-    The snr as a number.
-    '''
+#     Returns
+#     -------
+#     One output.
+#     The snr as a number.
+#     '''
 
-    flux_Jband = [flux[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
-    noise_Jband = [noise[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
-    snr = np.nanmedian(np.array(flux_Jband)/(np.array(noise_Jband)))
+#     flux_Jband = [flux[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
+#     noise_Jband = [noise[wavegrid_list.index(k)] for k in wavegrid if 1.3>k>1.1]
+#     snr = np.nanmedian(np.array(flux_Jband)/(np.array(noise_Jband)))
 
-    return snr
+#     return snr
 
 
 
@@ -614,7 +698,7 @@ def typeToMag(spt, reference='dupuy2012' , filter='2MASS_J' , method='polynomial
 
     Parameters
     ----------
-        spt : float
+        spt : float or string
                 Spectral type of the star, defined using fast_classify
     
     Returns
@@ -632,6 +716,9 @@ def typeToMag(spt, reference='dupuy2012' , filter='2MASS_J' , method='polynomial
     >>> typeToMag(21)
     (11.953508327545995, 0.4)
     '''
+    if isinstance(spt,str): 
+        spt = typeToNum(spt)
+
     # unc = copy.deepcopy(uncertainty)
     unc = uncertainty
     # sptn = copy.deepcopy(spt)
@@ -639,10 +726,10 @@ def typeToMag(spt, reference='dupuy2012' , filter='2MASS_J' , method='polynomial
     # uncn = copy.deepcopy(unc)
     uncn = [unc]    
     
-    fitunc = filters_dic[reference]['filters'][filter]['fitunc']
-    filt_range = filters_dic[reference]['filters'][filter]['range']
-    coeff = filters_dic[reference]['filters'][filter]['coeff']
-    sptoffset = filters_dic[reference]['sptoffset']
+    fitunc = absmag_relations[reference]['filters'][filter]['fitunc']
+    filt_range = absmag_relations[reference]['filters'][filter]['range']
+    coeff = absmag_relations[reference]['filters'][filter]['coeff']
+    sptoffset = absmag_relations[reference]['sptoffset']
 
     if method == 'polynomial':
         abs_mag = np.polyval(coeff, spt-sptoffset)
@@ -680,7 +767,7 @@ def filterProfile(filt):
     ----------
         filt : string
                 Currently unused ****
-                Name of one of the predefined filters listed in filters_dict.keys()
+                Name of one of the predefined filters listed in absmag_relations.keys()
     Returns
     -------
         two arrays: 
@@ -720,7 +807,7 @@ def filterMag(flux, unc, filt):
                     An array specifying noise in f_lambda units
         filter : String giving name of filter
                     Currently only '2MASS_J' filter
-                    it can be either one of the predefined filters listed in filters_dict.keys()
+                    it can be either one of the predefined filters listed in absmag_relations.keys()
     
     Returns
     -------
@@ -779,7 +866,7 @@ def filterMag(flux, unc, filt):
 def fluxCalibrate(flux,unc,filt,mag):
     '''
     Flux calibrates a spectrum given a filter and a magnitude. 
-    The filter must be one of those listed in `filters_dict.keys()`. 
+    The filter must be one of those listed in `absmag_relations.keys()`. 
     It is possible to specifically set the magnitude to be absolute (by default it is apparent).
     This function changes the Spectrum object's flux, noise and variance arrays.
     This function is necessary for the function "combine_two_spectra"
@@ -816,9 +903,9 @@ def fluxCalibrate(flux,unc,filt,mag):
     return flux_cal, unc_cal
 
 
-def combine_two_spex_spectra(flux1,unc1,flux2,unc2):
+def combine_two_spex_spectra(flux1,unc1,flux2,unc2,name1='',name2=''):
     '''
-    A function that combines the spectra of the two fiven stars
+    A function that combines the spectra of the two given stars
 
     Parameters
     ----------
@@ -843,30 +930,30 @@ def combine_two_spex_spectra(flux1,unc1,flux2,unc2):
 
     Examples
     --------
-    >>> 
     '''
-    # First Classify
-    spt1 = fast_classify(flux1, unc1)
-    spt2 = fast_classify(flux2, unc2)
 
-    # get magnitudes of types
-    absj1 = typeToMag(spt1)[0]
-    absj2 = typeToMag(spt2)[0]
+    # Classify the given spectra
+    spt1 = fast_classify(wavegrid, flux1, unc1)
+    spt2 = fast_classify(wavegrid, flux2, unc2)
 
-    # Calibrate flux
-    flux1, unc1 = fluxCalibrate(flux1, unc1, "2MASS_J", absj1)
-    flux2, unc2 = fluxCalibrate(flux2, unc2, "2MASS_J", absj2)
+    # # get magnitudes of types
+    # absj1 = typeToMag(spt1)[0]
+    # absj2 = typeToMag(spt2)[0]
+
+    # # Calibrate flux
+    # flux1, unc1 = fluxCalibrate(flux1, unc1, "2MASS_J", absj1)
+    # flux2, unc2 = fluxCalibrate(flux2, unc2, "2MASS_J", absj2)
 
     # Create combined spectrum
     flux3 = flux1 + flux2
     unc3  = unc1  + unc2
 
     # Classify Result
-    spt3 = fast_classify(flux3, unc3)
+    spt3 = fast_classify(wavegrid, flux3, unc3)
 
     # get standard
-    flux_standard = [standards.interpolated_flux[spt3-10]][0]
-    unc_standard = [standards.interpolated_noise[spt3-10]][0]
+    flux_standard = STANDARDS['FLUX'][spt3-10]
+    unc_standard = STANDARDS['UNC'][spt3-10]
 
     # normalize
     flux1, unc1 = normalize(wavegrid, flux1, unc1)
@@ -875,6 +962,9 @@ def combine_two_spex_spectra(flux1,unc1,flux2,unc2):
 
     # diff
     diff = flux_standard - flux3
+
+    if isinstance(name1,str) & isinstance(name2,str):
+        name = name1 + '+' + name2
 
     return {
         "primary_type": spt1,
@@ -889,14 +979,96 @@ def combine_two_spex_spectra(flux1,unc1,flux2,unc2):
         "difference_spectrum": interpolate_flux_wave(
             wavegrid, np.abs(diff)
         ).flatten(),
+        "name": name
     }
 
 
+def makeBinaryTemplates(stars_df):
+    """
+    Runs through the dataframe and recursively goes through all possible pairs (fast_type 2 ≥ fast_type 1) to make binary template set, and classifying the made up binary with fastclassify()
+    Parameters
+    ----------
+    stars_df : pandas dataframe
+                    A dataframe whose rows are the star templates and the columns are the name, wavegrid, flux, uncertainty, difference, and type of each star
+    Returns
+    -------
+    pandas dataframe
+            flux, uncertainty, wavegrid, type, and difference of each binary, and type of the primary and secondary
+    """
+
+    # pre-allocate
+    binary_type=[]
+    binary_flux=[]
+    binary_unce=[]
+    binary_diff=[]
+    binary_wave=[]
+    primar_type=[]
+    second_type=[]
+
+    stars_df = stars_df.sort_values(by=['fast_type'])    
+    stars_df = stars_df.reset_index(drop=True)
+    
+    for star1 in range(len(stars_df)-1):
+        for star2 in range(star1+1,len(stars_df)):
+            flux1 = stars_df.system_interpolated_flux[star1]
+            unc1  = stars_df.system_interpolated_noise[star1]
+            flux2 = stars_df.system_interpolated_flux[star2]
+            unc2  = stars_df.system_interpolated_noise[star2]
+            binary_dict = combine_two_spex_spectra(flux1,unc1,flux2,unc2)
+
+            binary_diff.append(binary_dict["difference_spectrum"])
+            binary_flux.append(binary_dict["system_interpolated_flux"])
+            binary_unce.append(binary_dict["system_interpolated_noise"])
+            binary_wave.append(stars_df.wavegrid[star1])
+            binary_type.append(binary_dict["system_type"])
+            primar_type.append(binary_dict["primary_type"])
+            second_type.append(binary_dict["secondary_type"])
+    
+    d = {"system_type":binary_type,"system_interpolated_flux":binary_flux,"system_interpolated_noise":binary_unce,"difference_spectrum":binary_diff,"wavegrid":binary_wave,"primary_type":primar_type,"secondary_type":second_type}
+    BinariesDataframe = pd.DataFrame(d)
+    
+    return BinariesDataframe
 
 
-def trainRFClassify(
-    templates, model_parameters={}, verbose=True, plot=True, plotfilebase=""
-):
+def downselectTemplates (stars_df, primarySpT = None, secondarySpT=None, binarySpT=None):
+    """
+    Filters the given dataframes down  the dataframe and recursively goes through all possible pairs (fast_type 2 ≥ fast_type 1) to make binary template set, and classifying the made up binary with fastclassify()
+    Parameters
+    ----------
+    stars_df  : pandas dataframe
+                    A dataframe whose rows are the constructed binaries and the columns are the system type, flux, uncertainty, difference, wavegrid, and type of the primary and secondary stars
+    primarySpT   : list or numpy array of 2 floats
+                    Default = None
+                    An array specifying the minimum and maximum spectral to select the primary stars of the binaries
+    secondarySpT : list or numpy array of 2 floats
+                    Default = None
+                    An array specifying the minimum and maximum spectral to select the secondary stars of the binaries
+    binarySpT    : list or numpy array of 2 floats
+                    Default = None
+                    An array specifying the minimum and maximum spectral to select the system type
+    Returns
+    -------
+    Two outputs, pandas dataframe
+            a filtered dataframe with singles of only the given types.
+            a filtered dataframe with binaries of only the given types.
+    """
+    
+    if type(primarySpT)==list:
+        stars_df = stars_df[stars_df['primary_type'] >= primarySpT[0]]
+        stars_df = stars_df[stars_df['primary_type'] <= primarySpT[1]]
+    if type(secondarySpT)==list:
+        stars_df = stars_df[stars_df['secondary_type'] >= secondarySpT[0]]
+        stars_df = stars_df[stars_df['secondary_type'] <= secondarySpT[1]]
+    if type(binarySpT)==list:
+        stars_df = stars_df[stars_df['system_type'] >= binarySpT[0]]
+        stars_df = stars_df[stars_df['system_type'] <= binarySpT[1]]
+    
+    stars_df = stars_df.reset_index(drop=True)
+    
+    return stars_df
+
+
+def trainRFClassify(templates, model_parameters={}, verbose=True, plot=True, plotfilebase=""):
     """
     Trains a random forest model based on training sample, returns model parameters and output statistics
 
@@ -986,9 +1158,4 @@ def RFclassify(parameters, labels, verbose=True):
     pass
 
 # ---------------------------------------------
-
-
-
-
-
 
