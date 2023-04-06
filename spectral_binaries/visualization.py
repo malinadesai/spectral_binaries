@@ -1,3 +1,4 @@
+"""Functions to generating visualizations."""
 import warnings
 from pathlib import Path
 from typing import Iterable, List, Optional, Union
@@ -240,9 +241,7 @@ def plot_prc(
     None
     """
     plt.figure(figsize=(8, 6))
-    PrecisionRecallDisplay.from_estimator(
-        model, X_test, y_test, color="black"
-    )
+    PrecisionRecallDisplay.from_estimator(model, X_test, y_test, color="black")
     plt.title(
         f"{model.__class__.__name__} PRC Curve - Positive Class = Binary"
     )
