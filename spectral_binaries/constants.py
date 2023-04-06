@@ -1,6 +1,7 @@
 """Module for defining all constants."""
 import pandas as pd
 
+BINS: list = [0, 10, 25, 50, 75, 100, 150, 200, 10000]
 SNR_BINS: list = [
     pd.Interval(200, 10000),
     pd.Interval(150, 200),

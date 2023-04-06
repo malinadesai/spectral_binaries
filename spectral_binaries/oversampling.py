@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 
 import spectral_binaries as sb
-from spectral_binaries.constants import NUM, SNR_BINS, SNR_CROSSOVER_TOL
+from spectral_binaries.constants import BINS, NUM, SNR_BINS, SNR_CROSSOVER_TOL
 
 WAVEGRID = np.load(sb.DATA_FOLDER + "wavegrid.npy")
 
@@ -24,8 +24,7 @@ def bin_snr(_df: pd.DataFrame, snr_col: str) -> pd.DataFrame:
     pd.DataFrame
         Original DataFrame with new SNR bins.
     """
-    _bins = [0, 10, 25, 50, 75, 100, 150, 200, 10000]
-    _df[f"{snr_col}_bins"] = pd.cut(_df[snr_col], _bins)
+    _df[f"{snr_col}_bins"] = pd.cut(_df[snr_col], BINS)
     return _df
 
 
