@@ -1,17 +1,17 @@
+"""Functions for training the random forest classifier."""
 import inspect
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import brier_score_loss, classification_report, make_scorer, precision_score, recall_score, f1_score
-from sklearn.model_selection import GridSearchCV, train_test_split, KFold
+from sklearn.metrics import brier_score_loss, classification_report
+from sklearn.model_selection import GridSearchCV, train_test_split
 
 from spectral_binaries.feature_extraction import FeatureSelectionWrapper
 
-
-PARAM_GRID: Dict[str, List] = {
+PARAM_GRID: dict[str, list] = {
     # "n_estimators": [100, 200, 500],
     # "max_depth": [5, 10, 15, 20, None],
     "min_samples_split": [2, 5, 10],
@@ -21,17 +21,17 @@ PARAM_GRID: Dict[str, List] = {
 
 
 def run_RF(
-    X: Union[np.ndarray, pd.DataFrame],
+    X: np.ndarray | pd.DataFrame,
     y: Iterable[int],
     grid_search: bool = False,
     cv: int = 5,
     test_size: float = 0.2,
     random_state: int = 0,
     n_jobs: int = -1,
-    feature_extraction_method: Optional[str] = None,
-    calibration_method: Optional[str] = None,
+    feature_extraction_method: str | None = None,
+    calibration_method: str | None = None,
     **kwargs,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run the ML pipeline.
 
     Split the dataset, run RF feature extraction, training, calibration, and
@@ -84,11 +84,11 @@ def run_RF(
         X_train, X_test = fe(X_train, X_test, y_train)
 
     rf_params = inspect.signature(RandomForestClassifier).parameters
-    rf_kwargs = {
-        k: v for k, v in kwargs.items() if k in rf_params
-    }
+    rf_kwargs = {k: v for k, v in kwargs.items() if k in rf_params}
 
-    rf = RandomForestClassifier(n_jobs=n_jobs, class_weight="balanced", **rf_kwargs)
+    rf = RandomForestClassifier(
+        n_jobs=n_jobs, class_weight="balanced", **rf_kwargs
+    )
     model = rf
 
     if grid_search:
@@ -115,12 +115,16 @@ def run_RF(
         cc.fit(X_train, y_train)
         y_test_proba = rf.predict_proba(X_test)[:, 1]
         brier_score_loss_before = brier_score_loss(y_test, y_test_proba)
-        print("\nBrier score loss before calibration:", brier_score_loss_before)
+        print(
+            "\nBrier score loss before calibration:", brier_score_loss_before
+        )
         y_test_proba_calibrated = cc.predict_proba(X_test)[:, 1]
         brief_score_loss_after = brier_score_loss(
             y_test, y_test_proba_calibrated
         )
-        print("Brier score loss after calibration:", brief_score_loss_after, "\n")
+        print(
+            "Brier score loss after calibration:", brief_score_loss_after, "\n"
+        )
         model = cc
 
     if not grid_search and not calibration_method:

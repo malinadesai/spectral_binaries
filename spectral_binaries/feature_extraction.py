@@ -1,5 +1,5 @@
+"""Feature extraction module."""
 import inspect
-from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -14,7 +14,7 @@ from sklearn.feature_selection import (
     mutual_info_classif,
 )
 
-EXTRACTION_DICT: dict[str, Callable] = {
+EXTRACTION_DICT = {
     "chi2": chi2,
     "mutual_info": mutual_info_classif,
     "f_test": f_classif,
@@ -43,7 +43,7 @@ class FeatureSelectionWrapper:
         The method to use for feature selection.
         Currently supported methods are "chi2", "mutual_info", "f_test",
         "corr", "sequential", and "recursive".
-    kwargs : Dict
+    kwargs : dict
         Additional keyword arguments to pass to the selected feature selection
         method.
 
@@ -51,7 +51,7 @@ class FeatureSelectionWrapper:
     ----------
     extractor : Callable
         The selected feature selection method.
-    kwargs : Dict
+    kwargs : dict
         Keyword arguments to pass to the selected feature selection method.
 
     Examples
@@ -65,6 +65,15 @@ class FeatureSelectionWrapper:
     """
 
     def __init__(self, method: str, **kwargs) -> None:
+        """Initialize the FE wrapper.
+
+        Parameters
+        ----------
+        method : str
+            FE method.
+        kwargs
+            FE kwargs.
+        """
         if method.lower() in EXTRACTION_DICT.keys():
             self.extractor = self.filter_feature_selection
         elif method.lower() in ("sequential", "recursive"):
@@ -75,10 +84,26 @@ class FeatureSelectionWrapper:
 
     def __call__(
         self,
-        X_train: Union[pd.DataFrame, np.ndarray],
-        X_test: Union[pd.DataFrame, np.ndarray],
-        y_train: Union[pd.Series, np.ndarray],
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        X_train: pd.DataFrame | np.ndarray,
+        X_test: pd.DataFrame | np.ndarray,
+        y_train: pd.Series | np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Call the FE wrapper.
+
+        Parameters
+        ----------
+        X_train : pd.DataFrame | np.ndarray
+            Training features.
+        X_test : pd.DataFrame | np.ndarray
+            Testing features.
+        y_train : pd.Series | np.ndarray
+            Training labels.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            Extracted features.
+        """
         extractor_params = inspect.signature(self.extractor).parameters
         extractor_kwargs = {
             k: v for k, v in self.kwargs.items() if k in extractor_params
@@ -87,12 +112,12 @@ class FeatureSelectionWrapper:
 
     def filter_feature_selection(
         self,
-        X_train: Union[pd.DataFrame, np.ndarray],
-        X_test: Union[pd.DataFrame, np.ndarray],
-        y_train: Union[pd.Series, np.ndarray],
+        X_train: pd.DataFrame | np.ndarray,
+        X_test: pd.DataFrame | np.ndarray,
+        y_train: pd.Series | np.ndarray,
         method: str = "chi2",
-        num_features: Optional[int] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        num_features: int | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Run filter-based feature selection on the training dataset.
 
         Evaluate features independent of the learning algorithm. Based on
@@ -106,21 +131,21 @@ class FeatureSelectionWrapper:
 
         Parameters
         ----------
-        X_train : Union[pd.DataFrame, np.ndarray]
+        X_train : pd.DataFrame | np.ndarray
             Input training features.
-        X_test : Union[pd.DataFrame, np.ndarray]
+        X_test : pd.DataFrame | np.ndarray
             Input testing features.
-        y_train : Union[pd.Series, np.ndarray]
+        y_train : pd.Series | np.ndarray
             Input training labels.
         method : str
             Statistical test to use.
-        num_features : Optional[int], optional
+        num_features : int, optional
             Number of features to select. If not specified, uses the square
             root of the number of training features.
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray]
+        tuple[np.ndarray, np.ndarray]
             X_train and X_test containing only the selected features.
         """
         if not num_features:
@@ -147,13 +172,13 @@ class FeatureSelectionWrapper:
 
     def wrapper_feature_selection(
         self,
-        X_train: Union[pd.DataFrame, np.ndarray],
-        X_test: Union[pd.DataFrame, np.ndarray],
-        y_train: Union[pd.Series, np.ndarray],
+        X_train: pd.DataFrame | np.ndarray,
+        X_test: pd.DataFrame | np.ndarray,
+        y_train: pd.Series | np.ndarray,
         estimator: BaseEstimator,
         num_features: int,
-        scoring: Optional[str] = "f1",
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        scoring: str | None = "f1",
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Run wrapper-based feature selection on the training dataset.
 
         Based on the performance of a learning algorithm. Train an algorithm
@@ -168,22 +193,22 @@ class FeatureSelectionWrapper:
 
         Parameters
         ----------
-        X_train : Union[pd.DataFrame, np.ndarray]
+        X_train : pd.DataFrame | np.ndarray
             Input training features.
-        X_test : Union[pd.DataFrame, np.ndarray]
+        X_test : pd.DataFrame | np.ndarray
             Input testing features.
-        y_train : Union[pd.Series, np.ndarray]
+        y_train : pd.DataFrame | np.ndarray
             Input training labels.
         estimator : BaseEstimator
             The learning algorithm to use for feature selection.
         num_features : int
             The number of features to select.
-        scoring : Optional[str], optional
+        scoring : str, optional
             The scoring metric to use for feature selection, by default "f1".
 
         Returns
         -------
-        Tuple[np.ndarray, np.ndarray]
+        tuple[np.ndarray, np.ndarray]
             X_train and X_test containing only the selected features.
         """
         if self.method == "sequential":

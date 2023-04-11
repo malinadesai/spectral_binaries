@@ -159,3 +159,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/.DS_Store
 *.DS_Store
+
+# Oversampled singles, large file
+data/singles_oversampled_04_05.h5
+
+# .idea directory
+.idea

@@ -1,0 +1,14 @@
+name: spectral_binaries
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - jupyter
+  - pandas
+  - flake8
+  - matplotlib
+  - seaborn
+  - pytables
+  - scipy
+  - scikit-learn

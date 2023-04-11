@@ -20,3 +20,6 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/Ultracool-Machine-Learning/spectral_binaries"
 "Bug Tracker" = "https://github.com/Ultracool-Machine-Learning/spectral_binaries/issues"
+
+[tool.black]
+line-length = 79
