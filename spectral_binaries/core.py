@@ -265,10 +265,10 @@ absmag_relations = {
 # read in standards
 df = pd.read_hdf(DATA_FOLDER + "standards.h5")
 STANDARDS = {
-    "WAVE": df["wavegrid"].iloc[0],
-    "SPT": df["sptype"],
-    "FLUX": df["interpolated_flux"],
-    "UNC": df["interpolated_noise"],
+    "WAVE": df["WAVEGRID"].iloc[0],
+    "SPT": df["SPT"],
+    "FLUX": df["FLUX"],
+    "UNC": df["UNCERTAINTY"],
 }
 wavegrid = STANDARDS["WAVE"]
 # STANDARDS = {'WAVE': df['wavegrid'].iloc[0],'STDS':{}}
