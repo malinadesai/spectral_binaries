@@ -12,7 +12,7 @@ import pandas as pd
 import random
 import scipy.interpolate as interp
 from scipy.integrate import trapz
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.ensemble import RandomForestRegressor
 
@@ -285,6 +285,7 @@ types_df = pd.DataFrame(dic_b)
 types_df = types_df.loc[types_df['primary_type']<=types_df['secondary_type']].reset_index(drop=True)
 types_count = types_df.groupby('secondary_type').primary_type.value_counts().unstack()
 
+BINARIES = {}
 
 # Basic spectral analysis functions.
 
@@ -317,35 +318,6 @@ def interpolate_flux_wave(
     """
     f = interp.interp1d(wave, flux, assume_sorted=False, fill_value=0.0)
     return f(wgrid)
-
-
-# File is too large and cannot be uploaded
-bina_df = pd.read_hdf(DATA_FOLDER + "spectral_templates_aug3_normalized.h5", key='binaries')
-b_wavegrid = np.array(pd.read_hdf(DATA_FOLDER + "spectral_templates_aug3_normalized.h5", key='wavegrid'))
-interpol_flux=[]
-for j in range(len(bina_df)):
-    a=[]
-    for i in range(409):
-        a.append(bina_df["flux_" + str(i)][j])
-    interpol_flux.append(a)
-bina_df["interpol_flux"]=interpol_flux
-bina_df = bina_df.loc[bina_df['primary_type']<=bina_df['secondary_type']]
-bina_df = bina_df.reset_index(drop=True)
-new_wave=wavegrid
-new_wave[-1]=b_wavegrid[-1]
-fluxlist=[]
-for i in range(len(bina_df)):
-    fluxi=bina_df['interpol_flux'][i]
-    nfluxi = interpolate_flux_wave(b_wavegrid, fluxi, wgrid=new_wave)
-    fluxlist.append(nfluxi)
-bina_df['FLUX']=fluxlist    
-BINARIES = {
-    "WAVE": wavegrid,
-    "PRIM": bina_df["primary_type"],
-    "SECO": bina_df["secondary_type"],
-    "FLUX": bina_df["FLUX"],
-}
-
 
 def measureSN(wave, flux, unc, rng=[1.2, 1.35], verbose=True):
     """
@@ -519,6 +491,34 @@ def typeToNum(inp):
 #         )
 #         chi.append(chisquared)
 #     return standard_types[np.argmin(chi)]
+
+def initialize_binaries():
+    bina_df = pd.read_hdf(r'C:/Users/juand/Research/h5_files/spectral_templates_aug3_normalized.h5', key='binaries')
+    b_wavegrid = np.array(pd.read_hdf(r'C:/Users/juand/Research/h5_files/spectral_templates_aug3_normalized.h5', key='wavegrid'))
+    interpol_flux=[]
+    for j in range(len(bina_df)):
+        a=[]
+        for i in range(409):
+            a.append(bina_df["flux_" + str(i)][j])
+        interpol_flux.append(a)
+    bina_df["interpol_flux"]=interpol_flux
+    bina_df = bina_df.loc[bina_df['primary_type']<=bina_df['secondary_type']]
+    bina_df = bina_df.reset_index(drop=True)
+    new_wave=wavegrid
+    new_wave[-1]=b_wavegrid[-1]
+    fluxlist=[]
+    for i in range(len(bina_df)):
+        fluxi=bina_df['interpol_flux'][i]
+        nfluxi = interpolate_flux_wave(b_wavegrid, fluxi, wgrid=new_wave)
+        fluxlist.append(nfluxi)
+    bina_df['FLUX']=fluxlist    
+    BINARIES = {
+        "WAVE": wavegrid,
+        "PRIM": bina_df["primary_type"],
+        "SECO": bina_df["secondary_type"],
+        "FLUX": bina_df["FLUX"],
+    }
+    return
 
 
 ## NOTE: NEED OPTIONAL PLOTTING, ALSO RETURN NOT JUST SPT BUT ALSO SCALE FACTOR AND CHI2
@@ -1259,6 +1259,8 @@ def combine_two_spex_spectra(flux1, unc1, flux2, unc2, name1="", name2=""):
     # Classify Result
     spt3 = fast_classify(wavegrid, flux3, unc3)
 
+
+# FIX
     # get standard
     flux_standard = STANDARDS["FLUX"][spt3 - 10]
     unc_standard = STANDARDS["UNC"][spt3 - 10]
@@ -1514,35 +1516,27 @@ def RFclassify(parameters, labels, verbose=True):
 # singles = singles.reset_index(drop=True)
 
 
-def addstars_1(df, target, mintype='', maxtype='', undersample=False, undersample_drop='random'):
+def _addstars(df, target, mintype='', maxtype=38, undersample=False, undersample_drop='random'):
     """
     Creates new stars by adding noise to the spectrum and distributes them equally
-
     Parameters
     ----------
     df : pandas dataframe
                     pandas table containing the following columns: ['FLUX', 'UNCERTAINTY', 'J_SNR', 'SPT', 'WAVEGRID']
-
     target : float
                     desired number of stars per type
-    
     mintype : float, default=''
                     the default makes it be the minimum type in the dataframe
                     desired smaller type number
-    
-    maxtype : float, default=''
-                    the default makes it be the maximum type in the dataframe
+    maxtype : float, default=38
                     desired larger type number
-
     undersample : bool, default = False
                     cannot be used yet
                     limit your number of stars of each type to a certain number by undersampling
-    
     undersample : string, default = 'random'
                     other options are 'lowest', 'highest'
                     cannot be used yet
                     specify which stars to drop when undersampling: random, lowest (lowest snr), highest (highest snr)
-
     Returns
     -------
     pandas dataframe
@@ -1551,143 +1545,146 @@ def addstars_1(df, target, mintype='', maxtype='', undersample=False, undersampl
     # could also specify which ones to drop: random, lowest (lowest snr), highest (highest snr)
     # to be implemented
 
-    snrclass=[]
-    for i in range(len(df)):
-        snrQ = df['J_SNR'][i]
-        if snrQ<50:
-            snrclass.append('low')
-        elif (snrQ>=50)&(snrQ<100):
-            snrclass.append('mid')
-        else:
-            snrclass.append('hig')
-    df['SNR_CLASS']=snrclass
-    typenum=[]
-    for i in range(len(df)):
-        typenum.append(typeToNum(df['SPT'][i]))
-    df['SPT_NUM']=typenum
-    df = df.loc[df['SPT_NUM']>15*np.ones(len(df))]
     df = df.reset_index(drop=True)
 
-    new_df = df.copy()
     if mintype=='':
         mintype=int(min(df.SPT_NUM))
     if maxtype=='':
         maxtype=int(max(df.SPT_NUM))
     typesrange = range(mintype,maxtype+1)
 
+    new_df = df.loc[df['SPT_NUM']<(maxtype+1)*np.ones(len(df))]
+    drop_unc = []
+    for position, uncertainty_i in enumerate(np.array(new_df['UNCERTAINTY'])):
+        if np.any(uncertainty_i<0)|np.any(np.isnan(uncertainty_i))|np.any(np.isinf(uncertainty_i)):
+            drop_unc.append(position)
+    new_df = new_df.drop(drop_unc).reset_index(drop=True)
+
     for spt in list(typesrange):
-        singles_type = df.loc[df['SPT_NUM']==spt*np.ones(len(df))]
+        singles_type = new_df.loc[new_df['SPT_NUM']==spt*np.ones(len(new_df))]
         singles_type = singles_type.reset_index(drop=True)
 
         # high snr
-        singles_snr = singles_type.loc[singles_type['SNR_CLASS']==['hig' for i in range(len(singles_type))]]
-        singles_snr = singles_snr.reset_index(drop=True)    
-        have = len(singles_snr)
+        singles_snr = singles_type.loc[singles_type['J_SNR']>=100*np.ones(len(singles_type))]
+        singles_snr = singles_snr.reset_index(drop=True)
+        higsnrstars = singles_snr    
+        have = len(higsnrstars)
         need = target-have
         if have>0:
-            mult=3
-            if have<5:
-                mult=1.01
             while need>0:
-                snr=-1
-                while snr<100:
-                    star = random.randint(0, have-1)
-                    flux = singles_snr['FLUX'][star]
-                    unc = singles_snr['UNCERTAINTY'][star]
-                    noisescale = random.random()*(mult) + 1
+                star = random.randint(0, have-1)
+                flux = singles_snr['FLUX'][star]
+                unc = singles_snr['UNCERTAINTY'][star]
+                mult = singles_snr['J_SNR'][star]/100
+                mult = mult -1
+                noisescale = random.random()*(mult) + 1                 
+                nflux, nunc = addNoise(flux, unc, scale=noisescale)
+                nan_and_zeros = (len(nunc)-np.count_nonzero(nunc)) + (len(nunc)-np.count_nonzero(~np.isnan(nunc)))
+                while nan_and_zeros>0:
                     nflux, nunc = addNoise(flux, unc, scale=noisescale)
-                    snr = measureSN(wavegrid, nflux, nunc)
+                    nan_and_zeros = (len(nunc)-np.count_nonzero(nunc)) + (len(nunc)-np.count_nonzero(~np.isnan(nunc)))
+                nunc = np.abs(nunc)
+                snr = measureSN(wavegrid, nflux, nunc)
                 new_df.loc[len(new_df.index)] = [nflux, nunc, snr, singles_snr.SPT[star], singles_snr.WAVEGRID[star], singles_snr.SPT_NUM[star], 'hig'] 
                 need -= 1
         
         # mid snr
         singles_snr = singles_type.loc[singles_type['J_SNR']>=50*np.ones(len(singles_type))]
-        singles_snr = singles_snr.loc[singles_snr['J_SNR']<100*np.ones(len(singles_snr))]
-        singles_snr = singles_snr.reset_index(drop=True)    
-        have = len(singles_snr)
+        singles_snr = singles_snr.reset_index(drop=True)
+        midsnrstars = singles_snr.loc[singles_snr['J_SNR']<100*np.ones(len(singles_snr))]  
+        have = len(midsnrstars)    
         need = target-have
         if have>0:
-            mult=3
-            if have<5:
-                mult=1.01
             while need>0:
-                snr=-1
-                while (snr>=100)|(snr<50):
-                    star = random.randint(0, have-1)
-                    flux = singles_snr['FLUX'][star]
-                    unc = singles_snr['UNCERTAINTY'][star]
-                    noisescale = random.random()*(mult) + 1
+                star = random.randint(0, have-1)
+                flux = singles_snr['FLUX'][star]
+                unc = singles_snr['UNCERTAINTY'][star]
+                start = singles_snr['J_SNR'][star]/100
+                if start<1:
+                    start=1
+                finish = singles_snr['J_SNR'][star]/50
+                noisescale = random.random()*(finish - start) + start
+                nflux, nunc = addNoise(flux, unc, scale=noisescale)
+                nan_and_zeros = (len(nunc)-np.count_nonzero(nunc)) + (len(nunc)-np.count_nonzero(~np.isnan(nunc)))
+                while nan_and_zeros>0:
                     nflux, nunc = addNoise(flux, unc, scale=noisescale)
-                    snr = measureSN(wavegrid, nflux, nunc)
+                    nan_and_zeros = (len(nunc)-np.count_nonzero(nunc)) + (len(nunc)-np.count_nonzero(~np.isnan(nunc)))
+                nunc = np.abs(nunc)
+                snr = measureSN(wavegrid, nflux, nunc)
                 new_df.loc[len(new_df.index)] = [nflux, nunc, snr, singles_snr.SPT[star], singles_snr.WAVEGRID[star], singles_snr.SPT_NUM[star], 'mid'] 
                 need -= 1
         
         # low snr
-        singles_snr = singles_type.loc[singles_type['J_SNR']<50*np.ones(len(singles_type))]
+        singles_snr = singles_type
         singles_snr = singles_snr.reset_index(drop=True)    
-        have = len(singles_snr)
+        lowsnrstars = singles_snr.loc[singles_snr['J_SNR']<50*np.ones(len(singles_snr))]  
+        have = len(lowsnrstars)
         need = target-have
         if have>0:
-            mult=3
-            if have<5:
-                mult=1.01
             while need>0:
-                snr=-1
-                while (snr>50)|(snr<0):
-                    star = random.randint(0, have-1)
-                    flux = singles_snr['FLUX'][star]
-                    unc = singles_snr['UNCERTAINTY'][star]
-                    noisescale = random.random()*(mult) + 1
+                star = random.randint(0, have-1)
+                flux = singles_snr['FLUX'][star]
+                unc = singles_snr['UNCERTAINTY'][star]
+                start = singles_snr['J_SNR'][star]/50
+                if start<1:
+                    start=1
+                minimum = random.random()*(15 - 0.8) + 0.8
+                finish = singles_snr['J_SNR'][star]/minimum
+                noisescale = random.random()*(finish - start) + start
+                if finish<1:
+                    noisescale=1
+                nflux, nunc = addNoise(flux, unc, scale=noisescale)
+                nunc = np.abs(nunc)
+                nan_and_zeros = (len(nunc)-np.count_nonzero(nunc)) + (len(nunc)-np.count_nonzero(~np.isnan(nunc)))
+                while nan_and_zeros>0:
                     nflux, nunc = addNoise(flux, unc, scale=noisescale)
-                    snr = measureSN(wavegrid, nflux, nunc)
+                    nunc = np.abs(nunc)
+                    nan_and_zeros = (len(nunc)-np.count_nonzero(nunc)) + (len(nunc)-np.count_nonzero(~np.isnan(nunc)))
+                snr = measureSN(wavegrid, nflux, nunc)
                 new_df.loc[len(new_df)] = [nflux, nunc, snr, singles_snr.SPT[star], singles_snr.WAVEGRID[star], singles_snr.SPT_NUM[star], 'low'] 
                 need -= 1
-                
+    
+    new_df = new_df.loc[new_df['SPT_NUM']>=mintype*np.ones(len(new_df))]
+    new_df = new_df.loc[new_df['SPT_NUM']<=maxtype*np.ones(len(new_df))]
+
     return(new_df)
 
-def addstars(df, target, mintype='', maxtype=''):
+def addstars(df, target, mintype='', maxtype=38):
     """
     Creates new stars by adding noise to the spectrum and distributes them equally and makes sure there are no nans
     Relies on addstars_1
-
     Parameters
     ----------
     df : pandas dataframe
                     pandas table containing the following columns: ['FLUX', 'UNCERTAINTY', 'J_SNR', 'SPT', 'WAVEGRID']
-
     target : float
                     desired number of stars per type
-    
     mintype : float, default=''
                     the default makes it be the minimum type in the dataframe
                     desired smaller type number
-    
-    maxtype : float, default=''
-                    the default makes it be the maximum type in the dataframe
+    maxtype : float, default=38
+                    ignores T9 because there is not enough of them to create a significant/relvant sample
                     desired larger type number
-
     Returns
     -------
     pandas dataframe
     """
-    df_new = addstars_1(df, target=target, mintype=mintype,maxtype=maxtype)
+    df_new = _addstars(df, target=target, mintype=mintype,maxtype=maxtype)
     while (len(df_new)-len(df_new.dropna()))>0:
         df_new = df_new.dropna()
         df_new = df_new.reset_index(drop=True)
-        df_new = addstars_1(df_new, target=target, mintype=mintype, maxtype=maxtype)
+        df_new = _addstars(df_new, target=target, mintype=mintype, maxtype=maxtype)
 
     return df_new
 
 
-def binaryCreation(singles_df, target, snr_range='low', fluxSeparate=False):
+def binaryCreation(singles_df, target, snr_range='low', fluxSeparate=False, difference=False):
     """
     Creates binaries out of single stars by combining the spectra and adding noise and distributes them equally
-
     Parameters
     ----------
     singles_df : pandas dataframe of single stars
                     pandas table containing the following columns: ['FLUX', 'UNCERTAINTY', 'J_SNR', 'SPT', 'WAVEGRID', 'SPT_NUM', 'SNR_CLASS']
-
     target : float
                     desired number of combinations per type
     
@@ -1696,12 +1693,10 @@ def binaryCreation(singles_df, target, snr_range='low', fluxSeparate=False):
                     low is from 0-50
                     mid is from 50-100
                     hig is larger than 100
-
     fluxSeparate : bool, default = False
                     separate the flux in each individual flux value per column
                     recommended: True
                     it allows to use the created dataframe to make a multioutput regressor
-
     Returns
     -------
     pandas dataframe
@@ -1714,11 +1709,22 @@ def binaryCreation(singles_df, target, snr_range='low', fluxSeparate=False):
     else:
         return print('Not a valid entry for the snr_range. Chose between "", "low", "mid", "hig".')
 
+    if snr_range=='low':
+        uppersnr = 50
+        lowersnr = 0
+    elif snr_range=='mid':
+        uppersnr = 100
+        lowersnr = 50
+    elif snr_range=='hig':
+        uppersnr = 100000
+        lowersnr = 100
+
     fluxes=[]
     noises=[]
     primaries=[]
     secondaries=[]
     snr_list=[]
+    differences=[]
     for j in range(16,40):
         if len(dataframe.loc[dataframe['SPT_NUM'] == j]) == 0:
             continue    # continue here
@@ -1729,7 +1735,8 @@ def binaryCreation(singles_df, target, snr_range='low', fluxSeparate=False):
             
             for i in range(0,target):
                 nanvalues=1
-                while nanvalues!=0:
+                snr3=-1
+                while (nanvalues!=0)|(lowersnr>snr3)|(snr3>uppersnr):
                     # get a random star of each type we are looking for
                     m1 = random.randint(0,len(dataframe.loc[dataframe['SPT_NUM'] == j])-1)
                     n1 = random.randint(0,len(dataframe.loc[dataframe['SPT_NUM'] == k])-1)
@@ -1737,7 +1744,7 @@ def binaryCreation(singles_df, target, snr_range='low', fluxSeparate=False):
                     unc1  = np.array(dataframe.loc[dataframe['SPT_NUM'] == j].reset_index(drop=True)['UNCERTAINTY'][m1])
                     flux2 = np.array(dataframe.loc[dataframe['SPT_NUM'] == k].reset_index(drop=True)['FLUX'][n1])
                     unc2  = np.array(dataframe.loc[dataframe['SPT_NUM'] == k].reset_index(drop=True)['UNCERTAINTY'][n1])
-                    # add noise to each star
+
                     noisescale1 = random.random()*(0.5) + 1
                     flux1, unc1 = addNoise(flux1, unc1, scale=noisescale1)
                     noisescale2 = random.random()*(0.5) + 1
@@ -1755,6 +1762,9 @@ def binaryCreation(singles_df, target, snr_range='low', fluxSeparate=False):
                 primaries.append(j)
                 secondaries.append(k)
                 snr_list.append(snr3)
+                if difference==True:
+                    diff3 = np.array(combstar_dic["difference_spectrum"])
+                    differences.append(diff3)
             
     d = {"system_interpolated_flux": fluxes,
         "system_interpolated_noise": noises,
@@ -1763,44 +1773,55 @@ def binaryCreation(singles_df, target, snr_range='low', fluxSeparate=False):
         "snr": snr_list,
         "SNR_CLASS": snr_range
         }
+    if difference==True:
+        d["difference_spectrum"]=differences
     BinDF = pd.DataFrame(d)
 
-
     if fluxSeparate==True:
+        flux_cols_dic = {}
         for j in range(len(BinDF['system_interpolated_flux'][0])):
             fluxcol=[]
             for i in range(len(BinDF)):
                 fluxcol.append(BinDF['system_interpolated_flux'][i][j])
             fluxname='flux_'+str(j)
-            BinDF[fluxname]=fluxcol
+            flux_cols_dic[fluxname] = fluxcol
+        flux_cols_df = pd.DataFrame(flux_cols_dic)
+        BinDF = pd.concat([BinDF, flux_cols_df], axis=1)
+
+        if difference==True:
+            diff_cols_dic = {}
+            for j in range(len(BinDF['difference_spectrum'][0])):
+                diffcol=[]
+                for i in range(len(BinDF)):
+                    diffcol.append(BinDF['difference_spectrum'][i][j])
+                diffname='diff_'+str(j)
+                diff_cols_dic[diffname] = diffcol
+            diff_cols_df = pd.DataFrame(diff_cols_dic)
+            BinDF = pd.concat([BinDF, diff_cols_df], axis=1)
     
     return BinDF
 
 
-def MultiOutputRegressor_Create(bin_df, traindata=False, testdata=False, shape=False, test_size=0.30, random_state=42, shuffle=True):
+def binary_multiOutput_classifier(bin_df, difference=False, max_depth=15, traindata=False, testdata=False, shape=False, test_size=0.30, random_state=42, shuffle=True):
     """
-    Creates new stars by adding noise to the spectrum and distributes them equally
-
+    Creates a multi output random forest model
     Parameters
     ----------
     bin_df : pandas dataframe
                     pandas table containing the following columns: ['primary_type','secondary_type','system_interpolated_flux','system_interpolated_noise','snr','SNR_CLASS','flux_0','flux_1', ... , 'flux_408']
-
+    difference : bool, default = False
+                    create the random forest model with the difference flux (binary_flux - standard_flux)
+                    Warning! This input doubles the parameters in the random forest. 
     traindata : bool, default = False
                     optional output of a dictionary with the train data
-
     testdata : bool, default = False
                     optional output of a dictionary with the test data
-    
     shape : bool, default = False
                     option to print the shape of the input data to the RF model
-
     Returns
     -------
     sklearn.multioutput.MultiOutputRegressor
-
     optional: dictionary
-
     Examples
     --------
     >>> MultiOutputRegressor_Create(bin_df)
@@ -1813,6 +1834,8 @@ def MultiOutputRegressor_Create(bin_df, traindata=False, testdata=False, shape=F
     feats.remove('system_interpolated_noise')
     feats.remove('snr')
     feats.remove('SNR_CLASS')
+    if difference==True:
+        feats.remove('difference_spectrum')
 
     xlist = np.array(bin_df[feats]) #data
 
@@ -1830,7 +1853,7 @@ def MultiOutputRegressor_Create(bin_df, traindata=False, testdata=False, shape=F
 
     # spit features and target variables into train and test split. Train set will have 70% of the features and the test will have 30% of the features.
     x_train, x_test, y_train, y_test = train_test_split(xlist, ylist, test_size=test_size, random_state=random_state, shuffle=shuffle)
-    clf = MultiOutputRegressor(RandomForestRegressor(max_depth=15, random_state=0))
+    clf = MultiOutputRegressor(RandomForestRegressor(max_depth=max_depth, random_state=0))
     clf.fit(x_train, y_train) #fitting to the training set 
 
     datadic={}
@@ -1847,27 +1870,23 @@ def MultiOutputRegressor_Create(bin_df, traindata=False, testdata=False, shape=F
         return clf
     
 
-def binaryClassificationPrecision(X_test,Y_test,model):
+def binaryPrecision(X_test,Y_test,model):
     """
-    Creates new stars by adding noise to the spectrum and distributes them equally
-
+    Classifies the two stars that compose the given binaries by using the given multi output model and compares with their given types.
     Parameters
     ----------
     X_test : numpy array of numpy arrays
                     each array has to have 409 floats of the individual fluxes
-
     Y_test : numpy array of numpy arrays
                     each array has to have 409 floats with the real classifications
     
     model : sklearn.multioutput.MultiOutputRegressor
-
     Returns
     -------
     df_avgdiffprim: pandas dataframe of the average difference between the predicted and actual type of the primaries for each group
     df_avgdiffseco: pandas dataframe of the average difference between the predicted and actual type of the secondaries for each group
     df_stdprim: pandas dataframe of the standard deviation between the predicted and actual type of the primaries for each group
     df_stdseco: pandas dataframe of the standard deviation between the predicted and actual type of the secondaries for each group
-
     Examples
     --------
     >>> df_avgdiffprim, df_avgdiffseco, df_stdprim, df_stdseco = binaryClassificationPrecision(flux_data,classification_data,model)
@@ -1901,7 +1920,7 @@ def binaryClassificationPrecision(X_test,Y_test,model):
                     diffprim.append(predsprim[-1] - realprim[-1])
                     diffsec.append(predssec[-1] - realsec[-1])
 
-            if len(diffprim) != 0:
+            if len(diffprim) > 1:
                 diffprim=np.array(diffprim)
                 diffsec=np.array(diffsec)
                 predsprim=np.array(predsprim)
