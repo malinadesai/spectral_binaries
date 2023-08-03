@@ -1962,4 +1962,37 @@ def binaryPrecision(X_test,Y_test,model):
 
     return df_avgdiffprim, df_avgdiffseco, df_stdprim, df_stdseco
 
+
+model_performances = pd.DataFrame()
+def store_model_performace(model, modelname, x_train, x_test, y_train, y_test):
+    '''
+    model : RandomForestClassifier
+    modelname : string identifying experiment name
+    x_train : array, RF training set with feature data
+    x_test : array, RF testing set with feature data
+    y_train : array, RF training set with labels
+    y_test : array, RF testing set with labels
+
+    Example: 
+    store_model_performance(RF_model1, 'model1', x_train, x_test, y_train, y_test)
+    '''
+    # do the prediction
+    train_preds = model.predict(x_train)
+    y_pred = model.predict(x_test)
+    
+    # get the scores and confusion matrix
+    precision_no = precision_score(y_test, y_pred)
+    accuracy_no = accuracy_score(y_test, y_pred)
+    f1_no = f1_score(y_test, y_pred)
+    recall_no = recall_score(y_test, y_pred)
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+    
+    # store those numbers in a dataframe
+    model_performances[modelname] = [precision_no, accuracy_no, f1_no, recall_no, tn, fp, fn, tp]
+    
+    # print relevant information
+    print("The raw features produce a model with precision ~{:.4f} !".format(precision_no))
+    print(classification_report(y_test, y_pred))
+    print(confusion_matrix(y_test, y_pred))
+
 # ---------------------------------------------
